@@ -8,13 +8,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { auth } from "@/lib/auth";
+import { getAuth } from "@/lib/auth";
 
 // Force dynamic rendering to avoid build-time auth initialization
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const session = await auth.api.getSession({
+  const session = await getAuth().api.getSession({
     headers: await headers(),
   });
 

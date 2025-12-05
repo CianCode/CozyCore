@@ -1,14 +1,14 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { UserNav } from "@/components/user-nav";
-import { auth } from "@/lib/auth";
+import { getAuth } from "@/lib/auth";
 import { ServersGrid } from "./servers-grid";
 
 // Force dynamic rendering to avoid build-time auth initialization
 export const dynamic = "force-dynamic";
 
 export default async function ServersPage() {
-  const session = await auth.api.getSession({
+  const session = await getAuth().api.getSession({
     headers: await headers(),
   });
 

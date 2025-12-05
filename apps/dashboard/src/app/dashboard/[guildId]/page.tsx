@@ -7,7 +7,7 @@ import { notFound, redirect } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { auth } from "@/lib/auth";
+import { getAuth } from "@/lib/auth";
 import { fetchGuildDetails, fetchUserGuilds } from "@/lib/discord";
 import { getGuildIconUrl, hasManageGuildPermission } from "@/lib/discord-utils";
 import { DashboardTabs } from "./dashboard-tabs";
@@ -22,7 +22,7 @@ type Props = {
 export default async function DashboardPage({ params }: Props) {
   const { guildId } = await params;
 
-  const session = await auth.api.getSession({
+  const session = await getAuth().api.getSession({
     headers: await headers(),
   });
 
