@@ -1,0 +1,35 @@
+{
+  "name": "cozycore",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@9.14.2",
+  "scripts": {
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "dev:bot": "turbo dev --filter=@cozycore/bot",
+    "dev:dashboard": "turbo dev --filter=@cozycore/dashboard",
+    "lint:fix": "bun x ultracite fix",
+    "lint": "bun x ultracite check",
+    "db:generate": "turbo db:generate",
+    "db:migrate": "turbo db:migrate",
+    "db:push": "turbo db:push",
+    "db:studio": "pnpm --filter @cozycore/db studio",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.3.8",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2",
+    "ultracite": "6.3.9"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,json,jsonc,css,scss,md,mdx}": [
+      "pnpm dlx ultracite fix"
+    ]
+  }
+}
