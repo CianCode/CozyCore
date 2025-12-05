@@ -1,6 +1,5 @@
 import { db, levelConfig, levelRoles, memberXp } from "@cozycore/db";
-import type { Guild, TextChannel } from "discord.js";
-import { EmbedBuilder } from "discord.js";
+import { EmbedBuilder, type Guild, type TextChannel } from "discord.js";
 import { and, eq } from "drizzle-orm";
 import { getRandomPastelDecimal } from "./embed-colors";
 
@@ -11,12 +10,13 @@ type LevelRole = typeof levelRoles.$inferSelect;
  * Award XP to a user and handle role progression + notifications
  */
 export async function awardXp(
-  guild: Guild,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  guild: any,
   userId: string,
   amount: number,
   source: "message" | "thread" | "helper" | "dashboard"
 ): Promise<{ oldXp: number; newXp: number; roleChanged: boolean }> {
-  const guildId = guild.id;
+  const guildId = guild.id as string;
 
   // Get config
   const [config] = await db
@@ -90,7 +90,8 @@ export async function awardXp(
  * Check and update role progression based on XP
  */
 async function checkRoleProgression(
-  guild: Guild,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  guild: any,
   config: LevelConfig | undefined,
   userId: string,
   currentRoleId: string | null,

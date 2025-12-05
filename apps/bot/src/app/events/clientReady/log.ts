@@ -35,7 +35,7 @@ const handler: EventHandler<"clientReady"> = async (client) => {
           },
         });
     } catch (error) {
-      Logger.error(`Failed to sync guild ${guild.name}:`, error);
+      console.error(`Failed to sync guild ${guild.name}:`, error);
     }
   }
 

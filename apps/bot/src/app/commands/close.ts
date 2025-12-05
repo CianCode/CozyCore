@@ -5,7 +5,6 @@ import {
   EmbedBuilder,
   StringSelectMenuBuilder,
   StringSelectMenuOptionBuilder,
-  type ThreadChannel,
 } from "discord.js";
 import { getRandomPastelDecimal } from "@/utils/embed-colors";
 import { awardXp, getLevelConfig } from "@/utils/level";
@@ -33,7 +32,8 @@ export const chatInput: ChatInputCommand = async ({ interaction }) => {
     });
   }
 
-  const thread = channel as ThreadChannel;
+  // channel is now narrowed to a thread type
+  const thread = channel;
   const parent = thread.parent;
 
   if (!parent || parent.type !== ChannelType.GuildForum) {
@@ -103,7 +103,7 @@ export const chatInput: ChatInputCommand = async ({ interaction }) => {
   }
 
   // Award XP to thread owner (only if someone helped)
-  if (thread.ownerId) {
+  if (thread.ownerId && interaction.guild) {
     await awardXp(
       interaction.guild,
       thread.ownerId,
@@ -211,7 +211,10 @@ export const chatInput: ChatInputCommand = async ({ interaction }) => {
   }
 };
 
-async function closeThread(thread: ThreadChannel): Promise<void> {
+async function closeThread(thread: {
+  setLocked: (locked: boolean) => Promise<unknown>;
+  setArchived: (archived: boolean) => Promise<unknown>;
+}): Promise<void> {
   try {
     await thread.setLocked(true);
     await thread.setArchived(true);

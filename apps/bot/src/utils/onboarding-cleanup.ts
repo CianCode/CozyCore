@@ -1,11 +1,11 @@
 import { db, onboardingThreads } from "@cozycore/db";
-import type { Client } from "discord.js";
 import { lt } from "drizzle-orm";
 
 const CLEANUP_INTERVAL = 5 * 60 * 1000; // Check every 5 minutes
 
 async function cleanupExpiredThread(
-  client: Client,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  client: any,
   threadRecord: { threadId: string; guildId: string }
 ) {
   try {
@@ -33,7 +33,8 @@ async function cleanupExpiredThread(
   }
 }
 
-export function startOnboardingCleanup(client: Client) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function startOnboardingCleanup(client: any) {
   console.log("[Onboarding] Starting cleanup task");
 
   const cleanup = async () => {
