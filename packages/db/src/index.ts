@@ -40,7 +40,7 @@ export const db = new Proxy({} as NodePgDatabase<typeof schema>, {
       }
       _db = drizzle(process.env.DATABASE_URL, { schema });
     }
-    return (_db as Record<string | symbol, unknown>)[prop];
+    return (_db as unknown as Record<string | symbol, unknown>)[prop];
   },
 });
 
