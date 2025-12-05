@@ -33,7 +33,7 @@ export const PASTEL_COLORS: PastelColor[] = [
  */
 export function getRandomPastelColor(): PastelColor {
   const index = Math.floor(Math.random() * PASTEL_COLORS.length);
-  return PASTEL_COLORS[index];
+  return PASTEL_COLORS[index] ?? PASTEL_COLORS[0]!;
 }
 
 /**
@@ -54,7 +54,7 @@ export function getRandomPastelDecimal(): number {
  * Get a pastel color by index (deterministic)
  */
 export function getPastelColorByIndex(index: number): PastelColor {
-  return PASTEL_COLORS[index % PASTEL_COLORS.length];
+  return PASTEL_COLORS[index % PASTEL_COLORS.length] ?? PASTEL_COLORS[0]!;
 }
 
 /**
@@ -67,5 +67,5 @@ export function getPastelColorFromSeed(seed: string): PastelColor {
     hash = (hash << 5) - hash + char;
     hash = hash & hash; // Convert to 32bit integer
   }
-  return PASTEL_COLORS[Math.abs(hash) % PASTEL_COLORS.length];
+  return PASTEL_COLORS[Math.abs(hash) % PASTEL_COLORS.length] ?? PASTEL_COLORS[0]!;
 }

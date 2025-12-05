@@ -1,4 +1,4 @@
-import type { StringSelectMenuInteraction } from "discord.js";
+import type { GuildMember, StringSelectMenuInteraction } from "discord.js";
 
 export default async function interactionCreate(
   interaction: StringSelectMenuInteraction
@@ -16,8 +16,8 @@ export default async function interactionCreate(
   await interaction.deferReply({ ephemeral: true });
 
   try {
-    const member = interaction.member;
-    if (!(member && "roles" in member)) {
+    const member = interaction.member as GuildMember | null;
+    if (!member?.roles) {
       await interaction.editReply({
         content: "❌ Could not find your member data.",
       });

@@ -108,7 +108,7 @@ async function checkRoleProgression(
   if (roles.length === 0) return false;
 
   // Find highest qualified role
-  const qualified = roles.filter((r) => r.xpRequired <= totalXp);
+  const qualified = roles.filter((r: LevelRole) => r.xpRequired <= totalXp);
   const newRole = qualified.at(-1);
 
   if (!newRole || newRole.roleId === currentRoleId) return false;
@@ -119,7 +119,7 @@ async function checkRoleProgression(
 
   // Determine if promotion or demotion
   const oldRoleXp = currentRoleId
-    ? (roles.find((r) => r.roleId === currentRoleId)?.xpRequired ?? 0)
+    ? (roles.find((r: LevelRole) => r.roleId === currentRoleId)?.xpRequired ?? 0)
     : 0;
   const isPromotion = newRole.xpRequired > oldRoleXp;
 

@@ -3,8 +3,8 @@
   "compilerOptions": {
     "lib": ["ESNext", "DOM"],
     "target": "ESNext",
-    "moduleResolution": "Node",
-    "module": "Preserve",
+    "moduleResolution": "Bundler",
+    "module": "ESNext",
     "allowImportingTsExtensions": true,
     "esModuleInterop": true,
     "resolveJsonModule": true,
