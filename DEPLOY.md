@@ -341,8 +341,8 @@ docker compose -f docker-compose.prod.yml up -d
 ### Check Container Status
 
 ```bash
-cd /opt/cozycore
-docker compose -f docker-compose.prod.yml ps
+chmod +x ssl-setup.sh
+./ssl-setup.sh your-email@example.com
 ```
 
 Expected output:

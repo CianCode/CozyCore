@@ -5,7 +5,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 // Lazy initialization to avoid errors during Next.js build
 let _auth: ReturnType<typeof betterAuth> | null = null;
 
-function getAuth() {
+export function getAuth() {
   if (!_auth) {
     if (!(process.env.DISCORD_CLIENT_ID && process.env.DISCORD_CLIENT_SECRET)) {
       throw new Error("Missing Discord OAuth environment variables");
@@ -40,7 +40,7 @@ function getAuth() {
   return _auth;
 }
 
-// Export a proxy that lazily initializes auth
+// Export auth for use in components that access properties
 export const auth = new Proxy({} as ReturnType<typeof betterAuth>, {
   get(_target, prop) {
     return (getAuth() as unknown as Record<string | symbol, unknown>)[prop];
