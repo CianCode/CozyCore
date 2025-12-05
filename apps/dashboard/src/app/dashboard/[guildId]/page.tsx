@@ -12,6 +12,9 @@ import { fetchGuildDetails, fetchUserGuilds } from "@/lib/discord";
 import { getGuildIconUrl, hasManageGuildPermission } from "@/lib/discord-utils";
 import { DashboardTabs } from "./dashboard-tabs";
 
+// Force dynamic rendering to avoid build-time auth/db initialization
+export const dynamic = "force-dynamic";
+
 type Props = {
   params: Promise<{ guildId: string }>;
 };
