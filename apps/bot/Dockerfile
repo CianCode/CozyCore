@@ -31,14 +31,11 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-# Copy built files and dependencies
+# Copy everything from builder (including node_modules)
 COPY --from=builder /app/package.json /app/pnpm-lock.yaml /app/pnpm-workspace.yaml ./
-COPY --from=builder /app/apps/bot/package.json ./apps/bot/
-COPY --from=builder /app/apps/bot/dist ./apps/bot/dist
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/apps/bot ./apps/bot
 COPY --from=builder /app/packages ./packages
-
-# Install production dependencies only
-RUN pnpm install --frozen-lockfile --prod
 
 WORKDIR /app/apps/bot
 
