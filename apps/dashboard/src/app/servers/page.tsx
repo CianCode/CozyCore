@@ -1,45 +1,16 @@
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
-import { UserNav } from "@/components/user-nav";
-import { getAuth } from "@/lib/auth";
-import { ServersGrid } from "./servers-grid";
-
-// Force dynamic rendering to avoid build-time auth initialization
+// Temporarily simplified for debugging
 export const dynamic = "force-dynamic";
 
 export default async function ServersPage() {
-  console.log("[ServersPage] ===== PAGE LOAD START =====");
+  console.log("[ServersPage] ===== SIMPLE PAGE LOAD =====");
   
-  let headersList;
-  try {
-    headersList = await headers();
-    console.log("[ServersPage] Headers retrieved");
-  } catch (error) {
-    console.error("[ServersPage] Headers error:", error);
-    throw error;
-  }
-  
-  // Debug: log cookies being sent
-  const cookies = headersList.get("cookie");
-  console.log("[ServersPage] Cookies present:", cookies ? "yes" : "no");
-  
-  let session = null;
-  try {
-    session = await getAuth().api.getSession({
-      headers: headersList,
-    });
-    console.log("[ServersPage] Session:", session ? `found (user: ${session.user?.email})` : "not found");
-  } catch (error) {
-    console.error("[ServersPage] Session error:", error);
-    redirect("/");
-  }
-
-  if (!session) {
-    console.log("[ServersPage] No session, redirecting to /");
-    redirect("/");
-  }
-  
-  console.log("[ServersPage] Rendering page for user:", session.user?.email);
+  return (
+    <div className="min-h-screen p-8">
+      <h1 className="text-2xl font-bold">Servers Page Works!</h1>
+      <p>If you see this, the /servers route is working.</p>
+    </div>
+  );
+}
 
   return (
     <div className="min-h-screen">

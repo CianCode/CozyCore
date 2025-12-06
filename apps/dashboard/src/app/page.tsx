@@ -37,9 +37,8 @@ export default async function HomePage({
   }
 
   if (session) {
-    // Temporarily redirect to /test to debug routing
-    console.log("[HomePage] Redirecting to /test (debug)");
-    redirect("/test");
+    console.log("[HomePage] Redirecting to /servers");
+    redirect("/servers");
   }
 
   return (
