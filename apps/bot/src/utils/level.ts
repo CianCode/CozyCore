@@ -6,17 +6,52 @@ import { getRandomPastelDecimal } from "./embed-colors";
 type LevelConfig = typeof levelConfig.$inferSelect;
 type LevelRole = typeof levelRoles.$inferSelect;
 
+// Regex for similarity check - defined at top level for performance
+const WORD_SPLIT_REGEX = /\s+/;
+
+type AwardXpParams = {
+  guild: Guild;
+  userId: string;
+  amount: number;
+  source: "message" | "thread" | "helper" | "dashboard";
+};
+
+type CheckRoleParams = {
+  guild: Guild;
+  config: LevelConfig | undefined;
+  userId: string;
+  currentRoleId: string | null;
+  totalXp: number;
+};
+
+type SendLogParams = {
+  guild: Guild;
+  channelId: string;
+  userId: string;
+  amount: number;
+  oldXp: number;
+  newXp: number;
+  source: string;
+};
+
+type SendRoleNotificationParams = {
+  guild: Guild;
+  channelId: string;
+  config: LevelConfig;
+  userId: string;
+  newRoleId: string;
+  oldRoleId: string | null;
+  isPromotion: boolean;
+};
+
 /**
  * Award XP to a user and handle role progression + notifications
  */
 export async function awardXp(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  guild: any,
-  userId: string,
-  amount: number,
-  source: "message" | "thread" | "helper" | "dashboard"
+  params: AwardXpParams
 ): Promise<{ oldXp: number; newXp: number; roleChanged: boolean }> {
-  const guildId = guild.id as string;
+  const { guild, userId, amount, source } = params;
+  const guildId = guild.id;
 
   // Get config
   const [config] = await db
@@ -63,25 +98,25 @@ export async function awardXp(
 
   // Log to channel
   if (config?.logChannelId) {
-    await sendLog(
+    await sendLog({
       guild,
-      config.logChannelId,
+      channelId: config.logChannelId,
       userId,
       amount,
       oldXp,
       newXp,
-      source
-    );
+      source,
+    });
   }
 
   // Check for role changes
-  const roleChanged = await checkRoleProgression(
+  const roleChanged = await checkRoleProgression({
     guild,
     config,
     userId,
-    member.currentRoleId,
-    newXp
-  );
+    currentRoleId: member.currentRoleId,
+    totalXp: newXp,
+  });
 
   return { oldXp, newXp, roleChanged };
 }
@@ -89,15 +124,12 @@ export async function awardXp(
 /**
  * Check and update role progression based on XP
  */
-async function checkRoleProgression(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  guild: any,
-  config: LevelConfig | undefined,
-  userId: string,
-  currentRoleId: string | null,
-  totalXp: number
-): Promise<boolean> {
-  if (!config) return false;
+async function checkRoleProgression(params: CheckRoleParams): Promise<boolean> {
+  const { guild, config, userId, currentRoleId, totalXp } = params;
+
+  if (!config) {
+    return false;
+  }
 
   // Get all level roles ordered by XP
   const roles = await db
@@ -106,17 +138,23 @@ async function checkRoleProgression(
     .where(eq(levelRoles.guildId, guild.id))
     .orderBy(levelRoles.xpRequired);
 
-  if (roles.length === 0) return false;
+  if (roles.length === 0) {
+    return false;
+  }
 
   // Find highest qualified role
   const qualified = roles.filter((r: LevelRole) => r.xpRequired <= totalXp);
   const newRole = qualified.at(-1);
 
-  if (!newRole || newRole.roleId === currentRoleId) return false;
+  if (!newRole || newRole.roleId === currentRoleId) {
+    return false;
+  }
 
   // Get Discord member
   const member = await guild.members.fetch(userId).catch(() => null);
-  if (!member) return false;
+  if (!member) {
+    return false;
+  }
 
   // Determine if promotion or demotion
   const oldRoleXp = currentRoleId
@@ -134,7 +172,9 @@ async function checkRoleProgression(
 
     // Remove old role if configured
     if (config.autoRemovePreviousRole && currentRoleId) {
-      await member.roles.remove(currentRoleId).catch(() => {});
+      await member.roles.remove(currentRoleId).catch(() => {
+        // Silently ignore errors when removing old role
+      });
     }
 
     // Update database
@@ -148,15 +188,15 @@ async function checkRoleProgression(
       ? config.congratsChannelId
       : config.demotionChannelId;
     if (channelId) {
-      await sendRoleNotification(
+      await sendRoleNotification({
         guild,
         channelId,
         config,
         userId,
-        newRole.roleId,
-        currentRoleId,
-        isPromotion
-      );
+        newRoleId: newRole.roleId,
+        oldRoleId: currentRoleId,
+        isPromotion,
+      });
     }
 
     return true;
@@ -169,17 +209,13 @@ async function checkRoleProgression(
 /**
  * Send XP log to log channel
  */
-async function sendLog(
-  guild: Guild,
-  channelId: string,
-  userId: string,
-  amount: number,
-  oldXp: number,
-  newXp: number,
-  source: string
-): Promise<void> {
+async function sendLog(params: SendLogParams): Promise<void> {
+  const { guild, channelId, userId, amount, oldXp, newXp, source } = params;
+
   const channel = await guild.channels.fetch(channelId).catch(() => null);
-  if (!channel?.isTextBased()) return;
+  if (!channel?.isTextBased()) {
+    return;
+  }
 
   const sourceText =
     {
@@ -197,26 +233,36 @@ async function sendLog(
     )
     .setTimestamp();
 
-  await (channel as TextChannel).send({ embeds: [embed] }).catch(() => {});
+  await (channel as TextChannel).send({ embeds: [embed] }).catch(() => {
+    // Silently ignore send errors
+  });
 }
 
 /**
  * Send role change notification
  */
 async function sendRoleNotification(
-  guild: Guild,
-  channelId: string,
-  config: LevelConfig,
-  userId: string,
-  newRoleId: string,
-  oldRoleId: string | null,
-  isPromotion: boolean
+  params: SendRoleNotificationParams
 ): Promise<void> {
+  const {
+    guild,
+    channelId,
+    config,
+    userId,
+    newRoleId,
+    oldRoleId,
+    isPromotion,
+  } = params;
+
   const channel = await guild.channels.fetch(channelId).catch(() => null);
-  if (!channel?.isTextBased()) return;
+  if (!channel?.isTextBased()) {
+    return;
+  }
 
   const member = await guild.members.fetch(userId).catch(() => null);
-  if (!member) return;
+  if (!member) {
+    return;
+  }
 
   const title = isPromotion
     ? config.promotionEmbedTitle
@@ -246,7 +292,9 @@ async function sendRoleNotification(
     embed.setTitle(title);
   }
 
-  await (channel as TextChannel).send({ embeds: [embed] }).catch(() => {});
+  await (channel as TextChannel).send({ embeds: [embed] }).catch(() => {
+    // Silently ignore send errors
+  });
 }
 
 /**
@@ -271,7 +319,9 @@ export function checkSimilarity(
   history: string[],
   severity: string
 ): boolean {
-  if (history.length === 0 || severity === "off") return false;
+  if (history.length === 0 || severity === "off") {
+    return false;
+  }
 
   const thresholds: Record<string, number> = {
     low: 0.9,
@@ -283,11 +333,13 @@ export function checkSimilarity(
   const normalized = content.toLowerCase().trim();
 
   for (const prev of history) {
-    const wordsA = new Set(normalized.split(/\s+/));
-    const wordsB = new Set(prev.toLowerCase().trim().split(/\s+/));
+    const wordsA = new Set(normalized.split(WORD_SPLIT_REGEX));
+    const wordsB = new Set(prev.toLowerCase().trim().split(WORD_SPLIT_REGEX));
     const intersection = [...wordsA].filter((x) => wordsB.has(x)).length;
     const union = new Set([...wordsA, ...wordsB]).size;
-    if (union > 0 && intersection / union >= threshold) return true;
+    if (union > 0 && intersection / union >= threshold) {
+      return true;
+    }
   }
   return false;
 }

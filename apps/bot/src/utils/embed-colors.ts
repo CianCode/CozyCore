@@ -8,9 +8,16 @@ export type PastelColor = {
   name: string;
 };
 
+// Default fallback color
+const DEFAULT_PASTEL: PastelColor = {
+  hex: "#FFB3BA",
+  decimal: 0xff_b3_ba,
+  name: "Soft Pink",
+};
+
 // Curated pastel color palette for Discord embeds
 export const PASTEL_COLORS: PastelColor[] = [
-  { hex: "#FFB3BA", decimal: 0xff_b3_ba, name: "Soft Pink" },
+  DEFAULT_PASTEL,
   { hex: "#FFDFBA", decimal: 0xff_df_ba, name: "Peach" },
   { hex: "#FFFFBA", decimal: 0xff_ff_ba, name: "Soft Yellow" },
   { hex: "#BAFFC9", decimal: 0xba_ff_c9, name: "Mint Green" },
@@ -33,7 +40,7 @@ export const PASTEL_COLORS: PastelColor[] = [
  */
 export function getRandomPastelColor(): PastelColor {
   const index = Math.floor(Math.random() * PASTEL_COLORS.length);
-  return PASTEL_COLORS[index] ?? PASTEL_COLORS[0]!;
+  return PASTEL_COLORS[index] ?? DEFAULT_PASTEL;
 }
 
 /**
@@ -54,18 +61,25 @@ export function getRandomPastelDecimal(): number {
  * Get a pastel color by index (deterministic)
  */
 export function getPastelColorByIndex(index: number): PastelColor {
-  return PASTEL_COLORS[index % PASTEL_COLORS.length] ?? PASTEL_COLORS[0]!;
+  return PASTEL_COLORS[index % PASTEL_COLORS.length] ?? DEFAULT_PASTEL;
+}
+
+/**
+ * Generate hash from seed string for color selection
+ */
+function generateHash(seed: string): number {
+  let hash = 0;
+  for (const char of seed) {
+    const charCode = char.charCodeAt(0);
+    hash = Math.imul(hash, 31) + charCode;
+  }
+  return Math.abs(hash);
 }
 
 /**
  * Generate a pastel color from a seed string (deterministic)
  */
 export function getPastelColorFromSeed(seed: string): PastelColor {
-  let hash = 0;
-  for (let i = 0; i < seed.length; i++) {
-    const char = seed.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash = hash & hash; // Convert to 32bit integer
-  }
-  return PASTEL_COLORS[Math.abs(hash) % PASTEL_COLORS.length] ?? PASTEL_COLORS[0]!;
+  const hash = generateHash(seed);
+  return PASTEL_COLORS[hash % PASTEL_COLORS.length] ?? DEFAULT_PASTEL;
 }

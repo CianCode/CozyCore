@@ -1,4 +1,83 @@
-import type { GuildMember, StringSelectMenuInteraction } from "discord.js";
+import type {
+  Guild,
+  GuildMember,
+  StringSelectMenuInteraction,
+} from "discord.js";
+
+/**
+ * Apply role additions to member
+ */
+async function addRoles(
+  member: GuildMember,
+  guild: Guild,
+  roleIds: string[]
+): Promise<string[]> {
+  const addedRoles: string[] = [];
+
+  for (const roleId of roleIds) {
+    try {
+      const role = guild.roles.cache.get(roleId);
+      if (role) {
+        await member.roles.add(role, "Onboarding role selection");
+        addedRoles.push(role.name);
+      }
+    } catch (error) {
+      console.error(`[Onboarding] Failed to add role ${roleId}:`, error);
+    }
+  }
+
+  return addedRoles;
+}
+
+/**
+ * Remove roles from member
+ */
+async function removeRoles(
+  member: GuildMember,
+  guild: Guild,
+  roleIds: string[]
+): Promise<string[]> {
+  const removedRoles: string[] = [];
+
+  for (const roleId of roleIds) {
+    try {
+      const role = guild.roles.cache.get(roleId);
+      if (role) {
+        await member.roles.remove(role, "Onboarding role deselection");
+        removedRoles.push(role.name);
+      }
+    } catch (error) {
+      console.error(`[Onboarding] Failed to remove role ${roleId}:`, error);
+    }
+  }
+
+  return removedRoles;
+}
+
+/**
+ * Build response message from role changes
+ */
+function buildResponseMessage(
+  addedRoles: string[],
+  removedRoles: string[]
+): string {
+  const parts: string[] = [];
+
+  if (addedRoles.length > 0) {
+    parts.push(`✅ Added: ${addedRoles.map((r) => `**${r}**`).join(", ")}`);
+  }
+  if (removedRoles.length > 0) {
+    parts.push(
+      `🔴 Removed: ${removedRoles.map((r) => `**${r}**`).join(", ")}`
+    );
+  }
+
+  if (parts.length === 0) {
+    return "✨ Your roles are already up to date!";
+  }
+
+  return parts.join("\n");
+}
 
 export default async function interactionCreate(
   interaction: StringSelectMenuInteraction
@@ -24,15 +103,15 @@ export default async function interactionCreate(
       return;
     }
 
-    const selectedRoleIds = interaction.values;
     const guild = interaction.guild;
-
     if (!guild) {
       await interaction.editReply({
         content: "❌ Could not find the server.",
       });
       return;
     }
+
+    const selectedRoleIds = interaction.values;
 
     // Get all role options from the select menu to know which roles to manage
     const allRoleOptions = interaction.component.options.map(
@@ -49,53 +128,12 @@ export default async function interactionCreate(
     );
 
     // Apply role changes
-    const addedRoles: string[] = [];
-    const removedRoles: string[] = [];
+    const addedRoles = await addRoles(member, guild, rolesToAdd);
+    const removedRoles = await removeRoles(member, guild, rolesToRemove);
 
-    for (const roleId of rolesToAdd) {
-      try {
-        const role = guild.roles.cache.get(roleId);
-        if (role) {
-          await member.roles.add(role, "Onboarding role selection");
-          addedRoles.push(role.name);
-        }
-      } catch (error) {
-        console.error(`[Onboarding] Failed to add role ${roleId}:`, error);
-      }
-    }
-
-    for (const roleId of rolesToRemove) {
-      try {
-        const role = guild.roles.cache.get(roleId);
-        if (role) {
-          await member.roles.remove(role, "Onboarding role deselection");
-          removedRoles.push(role.name);
-        }
-      } catch (error) {
-        console.error(`[Onboarding] Failed to remove role ${roleId}:`, error);
-      }
-    }
-
-    // Build response message
-    const parts: string[] = [];
-    if (addedRoles.length > 0) {
-      parts.push(`✅ Added: ${addedRoles.map((r) => `**${r}**`).join(", ")}`);
-    }
-    if (removedRoles.length > 0) {
-      parts.push(
-        `🔴 Removed: ${removedRoles.map((r) => `**${r}**`).join(", ")}`
-      );
-    }
-
-    if (parts.length === 0) {
-      await interaction.editReply({
-        content: "✨ Your roles are already up to date!",
-      });
-    } else {
-      await interaction.editReply({
-        content: parts.join("\n"),
-      });
-    }
+    // Build and send response
+    const responseMessage = buildResponseMessage(addedRoles, removedRoles);
+    await interaction.editReply({ content: responseMessage });
 
     console.log(
       `[Onboarding] ${interaction.user.tag} updated roles: +${addedRoles.length} -${removedRoles.length}`
