@@ -37,10 +37,9 @@ export default async function HomePage({
   }
 
   if (session) {
-    // Use the callbackUrl from params if present, otherwise go to /servers
-    const callbackUrl = typeof params.callbackUrl === "string" ? params.callbackUrl : "/servers";
-    console.log("[HomePage] Redirecting to:", callbackUrl);
-    redirect(callbackUrl);
+    // Temporarily redirect to /test to debug routing
+    console.log("[HomePage] Redirecting to /test (debug)");
+    redirect("/test");
   }
 
   return (
