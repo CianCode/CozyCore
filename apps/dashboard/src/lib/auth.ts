@@ -10,6 +10,9 @@ export function getAuth() {
     if (!(process.env.DISCORD_CLIENT_ID && process.env.DISCORD_CLIENT_SECRET)) {
       throw new Error("Missing Discord OAuth environment variables");
     }
+    
+    const isProduction = process.env.NODE_ENV === "production";
+    
     _auth = betterAuth({
       baseURL: process.env.BETTER_AUTH_URL,
       database: drizzleAdapter(db, {
@@ -34,6 +37,12 @@ export function getAuth() {
         cookieCache: {
           enabled: true,
           maxAge: 5 * 60, // 5 minutes
+        },
+      },
+      advanced: {
+        useSecureCookies: isProduction,
+        crossSubDomainCookies: {
+          enabled: false,
         },
       },
       trustedOrigins: [
