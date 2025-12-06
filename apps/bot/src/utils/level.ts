@@ -120,7 +120,8 @@ async function checkRoleProgression(
 
   // Determine if promotion or demotion
   const oldRoleXp = currentRoleId
-    ? (roles.find((r: LevelRole) => r.roleId === currentRoleId)?.xpRequired ?? 0)
+    ? (roles.find((r: LevelRole) => r.roleId === currentRoleId)?.xpRequired ??
+      0)
     : 0;
   const isPromotion = newRole.xpRequired > oldRoleXp;
 

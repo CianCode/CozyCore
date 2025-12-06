@@ -8,9 +8,21 @@ import { ServersGrid } from "./servers-grid";
 export const dynamic = "force-dynamic";
 
 export default async function ServersPage() {
-  const session = await getAuth().api.getSession({
-    headers: await headers(),
-  });
+  const headersList = await headers();
+  
+  // Debug: log cookies being sent
+  const cookies = headersList.get("cookie");
+  console.log("[ServersPage] Cookies present:", cookies ? "yes" : "no");
+  
+  let session = null;
+  try {
+    session = await getAuth().api.getSession({
+      headers: headersList,
+    });
+    console.log("[ServersPage] Session:", session ? "found" : "not found");
+  } catch (error) {
+    console.error("[ServersPage] Session error:", error);
+  }
 
   if (!session) {
     redirect("/");

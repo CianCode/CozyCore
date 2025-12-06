@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, Suspense } from "react";
+import { Suspense, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -35,9 +35,7 @@ function CallbackContent() {
   return (
     <Card className="w-full max-w-md">
       <CardHeader className="text-center">
-        <CardTitle className="font-bold text-2xl">
-          Authenticating...
-        </CardTitle>
+        <CardTitle className="font-bold text-2xl">Authenticating...</CardTitle>
         <CardDescription>
           Please wait while we connect your Discord account.
         </CardDescription>
@@ -56,13 +54,15 @@ function CallbackContent() {
 export default function AuthCallbackPage() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4">
-      <Suspense fallback={
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <CardTitle className="font-bold text-2xl">Loading...</CardTitle>
-          </CardHeader>
-        </Card>
-      }>
+      <Suspense
+        fallback={
+          <Card className="w-full max-w-md">
+            <CardHeader className="text-center">
+              <CardTitle className="font-bold text-2xl">Loading...</CardTitle>
+            </CardHeader>
+          </Card>
+        }
+      >
         <CallbackContent />
       </Suspense>
     </main>

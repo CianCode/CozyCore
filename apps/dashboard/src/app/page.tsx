@@ -14,9 +14,21 @@ import { getAuth } from "@/lib/auth";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const session = await getAuth().api.getSession({
-    headers: await headers(),
-  });
+  const headersList = await headers();
+  
+  // Debug: log cookies being sent
+  const cookies = headersList.get("cookie");
+  console.log("[HomePage] Cookies present:", cookies ? "yes" : "no");
+  
+  let session = null;
+  try {
+    session = await getAuth().api.getSession({
+      headers: headersList,
+    });
+    console.log("[HomePage] Session:", session ? "found" : "not found");
+  } catch (error) {
+    console.error("[HomePage] Session error:", error);
+  }
 
   if (session) {
     redirect("/servers");
