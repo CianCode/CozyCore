@@ -10,7 +10,7 @@ export function SignInButton() {
       onClick={() => {
         signIn.social({
           provider: "discord",
-          callbackURL: "/servers",
+          callbackURL: window.location.origin + "/servers",
         });
       }}
       size="lg"

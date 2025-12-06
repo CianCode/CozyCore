@@ -13,25 +13,34 @@ import { getAuth } from "@/lib/auth";
 // Force dynamic rendering to avoid build-time auth initialization
 export const dynamic = "force-dynamic";
 
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const params = await searchParams;
   const headersList = await headers();
   
-  // Debug: log cookies being sent
+  // Debug: log request info
   const cookies = headersList.get("cookie");
   console.log("[HomePage] Cookies present:", cookies ? "yes" : "no");
+  console.log("[HomePage] Search params:", JSON.stringify(params));
   
   let session = null;
   try {
     session = await getAuth().api.getSession({
       headers: headersList,
     });
-    console.log("[HomePage] Session:", session ? "found" : "not found");
+    console.log("[HomePage] Session:", session ? `found (user: ${session.user?.email})` : "not found");
   } catch (error) {
     console.error("[HomePage] Session error:", error);
   }
 
   if (session) {
-    redirect("/servers");
+    // Use the callbackUrl from params if present, otherwise go to /servers
+    const callbackUrl = typeof params.callbackUrl === "string" ? params.callbackUrl : "/servers";
+    console.log("[HomePage] Redirecting to:", callbackUrl);
+    redirect(callbackUrl);
   }
 
   return (
