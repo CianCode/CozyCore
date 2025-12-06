@@ -11,6 +11,7 @@ export function getAuth() {
       throw new Error("Missing Discord OAuth environment variables");
     }
     _auth = betterAuth({
+      baseURL: process.env.BETTER_AUTH_URL,
       database: drizzleAdapter(db, {
         provider: "pg",
         schema: {
@@ -35,6 +36,9 @@ export function getAuth() {
           maxAge: 5 * 60, // 5 minutes
         },
       },
+      trustedOrigins: [
+        process.env.BETTER_AUTH_URL || "http://localhost:3000",
+      ],
     });
   }
   return _auth;
