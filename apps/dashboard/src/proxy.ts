@@ -12,9 +12,8 @@ export function proxy(request: NextRequest) {
   );
 
   if (isProtectedRoute) {
-    // Optimistically check for session cookie (proxy should avoid DB calls)
-    // The actual session validation happens in the pages/API routes
-    const sessionCookie = request.cookies.get("better-auth.session_token");
+    // Check for session cookie with the correct prefix (cozycore)
+    const sessionCookie = request.cookies.get("cozycore.session_token");
 
     if (!sessionCookie) {
       const signInUrl = new URL("/", request.url);
