@@ -6,8 +6,8 @@ import { startOnboardingCleanup } from "../../../utils/onboarding-cleanup";
 const handler: EventHandler<"clientReady"> = async (client) => {
   Logger.info(`Logged in as ${client.user.username}!`);
 
-  // Start onboarding cleanup task
-  startOnboardingCleanup(client);
+  // Start onboarding cleanup task - cast to expected type
+  startOnboardingCleanup(client as Parameters<typeof startOnboardingCleanup>[0]);
 
   // Sync all guilds to database on startup
   const guildCache = client.guilds.cache;

@@ -1,9 +1,4 @@
 import type { ChatInputCommand, CommandData } from "commandkit";
-import type {
-  ChatInputCommandInteraction,
-  Guild,
-  ThreadChannel,
-} from "discord.js";
 import {
   ActionRowBuilder,
   ChannelType,
@@ -31,7 +26,10 @@ export const command: CommandData = {
 /**
  * Close and archive a thread
  */
-async function closeThread(thread: ThreadChannel): Promise<void> {
+async function closeThread(thread: {
+  setLocked: (locked: boolean) => Promise<unknown>;
+  setArchived: (archived: boolean) => Promise<unknown>;
+}): Promise<void> {
   try {
     await thread.setLocked(true);
     await thread.setArchived(true);
@@ -43,9 +41,10 @@ async function closeThread(thread: ThreadChannel): Promise<void> {
 /**
  * Get participants from thread messages (excluding owner and bots)
  */
-async function getParticipants(
-  thread: ThreadChannel
-): Promise<Map<string, string>> {
+async function getParticipants(thread: {
+  ownerId: string | null;
+  messages: { fetch: (options: { limit: number }) => Promise<Map<string, { author: { id: string; username: string; bot: boolean } }>> };
+}): Promise<Map<string, string>> {
   const messages = await thread.messages.fetch({ limit: 100 });
   const participants = new Map<string, string>();
 
@@ -100,31 +99,55 @@ function createHelperSelectMenu(
 /**
  * Handle helper selection with collector
  */
-function setupHelperCollector(
-  interaction: ChatInputCommandInteraction,
-  thread: ThreadChannel,
-  guild: Guild,
+function setupHelperCollector<
+  TInteraction extends {
+    channel: { createMessageComponentCollector: (options: unknown) => unknown } | null;
+    user: { id: string };
+    editReply: (options: unknown) => Promise<unknown>;
+  },
+  TThread extends { id: string; setLocked: (v: boolean) => Promise<unknown>; setArchived: (v: boolean) => Promise<unknown> },
+  TGuild extends { id: string }
+>(
+  interaction: TInteraction,
+  thread: TThread,
+  guild: TGuild,
   config: LevelConfig
 ): void {
-  const collector = interaction.channel?.createMessageComponentCollector({
-    filter: (i) =>
+  const channel = interaction.channel as {
+    createMessageComponentCollector: (options: {
+      filter: (i: { customId: string; user: { id: string } }) => boolean;
+      time: number;
+      max: number;
+    }) => {
+      on: (event: string, handler: (arg: unknown) => void) => void;
+    };
+  } | null;
+  
+  const collector = channel?.createMessageComponentCollector({
+    filter: (i: { customId: string; user: { id: string } }) =>
       i.customId === `close_helper_${thread.id}` &&
       i.user.id === interaction.user.id,
     time: 60_000,
     max: 1,
   });
 
-  collector?.on("collect", async (i) => {
-    if (i.isStringSelectMenu() && i.values[0]) {
-      const helperId = i.values[0];
+  collector?.on("collect", async (i: unknown) => {
+    const selectInteraction = i as {
+      isStringSelectMenu: () => boolean;
+      values: string[];
+      update: (options: unknown) => Promise<unknown>;
+    };
+    
+    if (selectInteraction.isStringSelectMenu() && selectInteraction.values[0]) {
+      const helperId = selectInteraction.values[0];
       await awardXp({
-        guild,
+        guild: guild as Parameters<typeof awardXp>[0]["guild"],
         userId: helperId,
         amount: config.helperBonusXp,
         source: "helper",
       });
 
-      await i.update({
+      await selectInteraction.update({
         embeds: [
           new EmbedBuilder()
             .setColor(getRandomPastelDecimal())
@@ -139,7 +162,7 @@ function setupHelperCollector(
     setTimeout(() => closeThread(thread), 2000);
   });
 
-  collector?.on("end", async (collected) => {
+  collector?.on("end", async (collected: { size: number }) => {
     if (collected.size === 0) {
       await interaction
         .editReply({
@@ -164,10 +187,13 @@ function setupHelperCollector(
 /**
  * Check if user has permission to close the thread
  */
-function canCloseThread(
-  interaction: ChatInputCommandInteraction,
-  thread: ThreadChannel
-): boolean {
+function canCloseThread<
+  TInteraction extends {
+    member: { permissions: string | { has: (perm: string) => boolean } } | null;
+    user: { id: string };
+  },
+  TThread extends { ownerId: string | null }
+>(interaction: TInteraction, thread: TThread): boolean {
   const member = interaction.member;
   const isOwner = thread.ownerId === interaction.user.id;
   const canManage =
@@ -181,18 +207,18 @@ function canCloseThread(
 /**
  * Handle thread with no XP configuration or not in whitelist
  */
-async function handleSimpleClose(
-  interaction: ChatInputCommandInteraction,
-  thread: ThreadChannel
-): Promise<void> {
+async function handleSimpleClose<
+  TInteraction extends { reply: (options: unknown) => Promise<unknown> },
+  TThread extends { setLocked: (v: boolean) => Promise<unknown>; setArchived: (v: boolean) => Promise<unknown> }
+>(interaction: TInteraction, thread: TThread): Promise<void> {
   await closeThread(thread);
   await interaction.reply({ content: "✅ Thread closed.", ephemeral: true });
 }
 
-type HandleXpCloseParams = {
-  interaction: ChatInputCommandInteraction;
-  thread: ThreadChannel;
-  guild: Guild;
+type XpCloseParams<TInteraction, TThread, TGuild> = {
+  interaction: TInteraction;
+  thread: TThread;
+  guild: TGuild;
   config: LevelConfig;
   participants: Map<string, string>;
 };
@@ -200,12 +226,26 @@ type HandleXpCloseParams = {
 /**
  * Handle thread with participants and XP rewards
  */
-async function handleXpClose(params: HandleXpCloseParams): Promise<void> {
+async function handleXpClose<
+  TInteraction extends {
+    reply: (options: unknown) => Promise<unknown>;
+    channel: { createMessageComponentCollector: (options: unknown) => unknown } | null;
+    user: { id: string };
+    editReply: (options: unknown) => Promise<unknown>;
+  },
+  TThread extends {
+    id: string;
+    ownerId: string | null;
+    setLocked: (v: boolean) => Promise<unknown>;
+    setArchived: (v: boolean) => Promise<unknown>;
+  },
+  TGuild extends { id: string }
+>(params: XpCloseParams<TInteraction, TThread, TGuild>): Promise<void> {
   const { interaction, thread, guild, config, participants } = params;
   // Award XP to thread owner
   if (thread.ownerId) {
     await awardXp({
-      guild,
+      guild: guild as Parameters<typeof awardXp>[0]["guild"],
       userId: thread.ownerId,
       amount: config.xpOnThreadClose,
       source: "thread",
