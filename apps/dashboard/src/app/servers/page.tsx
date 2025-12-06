@@ -8,7 +8,16 @@ import { ServersGrid } from "./servers-grid";
 export const dynamic = "force-dynamic";
 
 export default async function ServersPage() {
-  const headersList = await headers();
+  console.log("[ServersPage] ===== PAGE LOAD START =====");
+  
+  let headersList;
+  try {
+    headersList = await headers();
+    console.log("[ServersPage] Headers retrieved");
+  } catch (error) {
+    console.error("[ServersPage] Headers error:", error);
+    throw error;
+  }
   
   // Debug: log cookies being sent
   const cookies = headersList.get("cookie");
@@ -19,14 +28,18 @@ export default async function ServersPage() {
     session = await getAuth().api.getSession({
       headers: headersList,
     });
-    console.log("[ServersPage] Session:", session ? "found" : "not found");
+    console.log("[ServersPage] Session:", session ? `found (user: ${session.user?.email})` : "not found");
   } catch (error) {
     console.error("[ServersPage] Session error:", error);
+    redirect("/");
   }
 
   if (!session) {
+    console.log("[ServersPage] No session, redirecting to /");
     redirect("/");
   }
+  
+  console.log("[ServersPage] Rendering page for user:", session.user?.email);
 
   return (
     <div className="min-h-screen">
