@@ -1,0 +1,48 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1764868008197,
+      "tag": "0000_add-onboarding-tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1764868100000,
+      "tag": "0001_add-typing-indicator-settings",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1764868200000,
+      "tag": "0002_add-thread-template-and-role-visibility",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1764868300000,
+      "tag": "0003_add-level-system",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1764951303490,
+      "tag": "0004_ancient_kingpin",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1764960000000,
+      "tag": "0005_saved_embed_messages",
+      "breakpoints": true
+    }
+  ]
+}

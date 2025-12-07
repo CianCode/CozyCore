@@ -1,0 +1,26 @@
+{
+  "name": "@cozycore/bot",
+  "description": "CozyCore Discord Bot",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "commandkit dev",
+    "build": "commandkit build",
+    "start": "commandkit start"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@cozycore/config": "workspace:*",
+    "@cozycore/db": "workspace:*",
+    "@cozycore/types": "workspace:*",
+    "commandkit": "1.2.0-dev.20251125125452",
+    "discord.js": "^14.25.1",
+    "drizzle-orm": "^0.38.3",
+    "zod": "^4.1.13"
+  }
+}
