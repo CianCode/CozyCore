@@ -166,15 +166,49 @@ export type LevelConfig = {
   // Embed Templates
   promotionEmbedTitle: string;
   promotionEmbedDescription: string;
+  promotionEmbedDescriptions: string[];
   demotionEmbedTitle: string;
   demotionEmbedDescription: string;
+  demotionEmbedDescriptions: string[];
   roleLossEmbedTitle: string;
   roleLossEmbedDescription: string;
+  roleLossEmbedDescriptions: string[];
   // Roles Embed Settings
   rolesEmbedChannelId: string | null;
   rolesEmbedMessageId: string | null;
   rolesEmbedTitle: string;
   rolesEmbedDescription: string;
+  // Helper Recognition Settings
+  helperRecognitionChannelId: string | null;
+  helperRecognitionEmbedTitle: string;
+  helperRecognitionEmbedDescription: string;
+  helperRecognitionEmbedDescriptions: string[];
+  // Fast Resolution Settings
+  fastResolutionChannelId: string | null;
+  fastResolutionEmbedTitle: string;
+  fastResolutionEmbedDescription: string;
+  fastResolutionEmbedDescriptions: string[];
+  // Booster Settings
+  boosterEnabled: boolean;
+  boosterChannelId: string | null;
+  boosterXpMultiplier: number;
+  boosterBonusXpPerMessage: number;
+  boosterHelperBonusMultiplier: number;
+  boosterEmbedTitle: string;
+  boosterEmbedDescription: string;
+  boosterEmbedDescriptions: string[];
+  // Monthly Top Helper Settings
+  monthlyTopHelperEnabled: boolean;
+  monthlyTopHelperChannelId: string | null;
+  monthlyTopHelperDay: number;
+  monthlyTopHelperHour: number;
+  monthlyTopHelperFirst: number | null;
+  monthlyTopHelperSecond: number | null;
+  monthlyTopHelperThird: number | null;
+  monthlyTopHelperEmbedTitle: string;
+  monthlyTopHelperEmbedDescription: string;
+  monthlyTopHelperEmbedDescriptions: string[];
+  lastMonthlyTopHelperRun: Date | null;
 };
 
 export type LevelRole = {

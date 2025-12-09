@@ -7,7 +7,13 @@ import {
   StringSelectMenuOptionBuilder,
 } from "discord.js";
 import { getRandomPastelDecimal } from "@/utils/embed-colors";
-import { awardXp, getLevelConfig } from "@/utils/level";
+import {
+  awardXp,
+  getLevelConfig,
+  incrementMonthlyHelperCount,
+  sendFastResolutionNotification,
+  sendHelperRecognition,
+} from "@/utils/level";
 
 export const command: CommandData = {
   name: "close",
@@ -22,7 +28,9 @@ export const command: CommandData = {
 };
 
 export const chatInput: ChatInputCommand = async ({ interaction }) => {
-  if (interaction.options.getSubcommand() !== "thread") return;
+  if (interaction.options.getSubcommand() !== "thread") {
+    return;
+  }
 
   const channel = interaction.channel;
   if (!channel?.isThread()) {
@@ -157,12 +165,58 @@ export const chatInput: ChatInputCommand = async ({ interaction }) => {
     collector?.on("collect", async (i) => {
       if (i.isStringSelectMenu() && i.values[0]) {
         const helperId = i.values[0];
-        await awardXp(
-          interaction.guild!,
+        let totalHelperXp = config.helperBonusXp;
+
+        // Check for fast resolution bonus
+        const threadCreatedAt = thread.createdAt;
+        const hoursElapsed = threadCreatedAt
+          ? (Date.now() - threadCreatedAt.getTime()) / (1000 * 60 * 60)
+          : null;
+
+        const isFastResolution =
+          config.fastResolutionEnabled &&
+          hoursElapsed !== null &&
+          hoursElapsed <= config.fastResolutionThresholdHours;
+
+        if (isFastResolution) {
+          totalHelperXp += config.fastResolutionBonusXp;
+        }
+
+        await awardXp(interaction.guild!, helperId, totalHelperXp, "helper");
+
+        // Increment monthly helper count for leaderboard
+        await incrementMonthlyHelperCount(guildId, helperId);
+
+        // Send helper recognition notification in the thread
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await sendHelperRecognition(
+          interaction.guild! as any,
+          config,
           helperId,
-          config.helperBonusXp,
-          "helper"
+          thread.ownerId ?? i.user.id,
+          thread.name,
+          totalHelperXp,
+          thread as any
         );
+
+        // Send fast resolution notification if applicable in the thread
+        if (isFastResolution && hoursElapsed !== null) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await sendFastResolutionNotification(
+            interaction.guild! as any,
+            config,
+            helperId,
+            thread.ownerId ?? i.user.id,
+            thread.name,
+            hoursElapsed,
+            config.fastResolutionBonusXp,
+            thread as any
+          );
+        }
+
+        const bonusText = isFastResolution
+          ? ` (includes +${config.fastResolutionBonusXp} fast resolution bonus!)`
+          : "";
 
         await i.update({
           embeds: [
@@ -170,7 +224,7 @@ export const chatInput: ChatInputCommand = async ({ interaction }) => {
               .setColor(getRandomPastelDecimal())
               .setTitle("✨ Helper Recognized!")
               .setDescription(
-                `<@${helperId}> received **${config.helperBonusXp} bonus XP**!`
+                `<@${helperId}> received **${totalHelperXp} bonus XP**!${bonusText}`
               ),
           ],
           components: [],

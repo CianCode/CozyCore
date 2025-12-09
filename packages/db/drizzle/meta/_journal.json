@@ -43,6 +43,13 @@
       "when": 1764960000000,
       "tag": "0005_saved_embed_messages",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1765000000000,
+      "tag": "0006_random_notification_messages",
+      "breakpoints": true
     }
   ]
 }

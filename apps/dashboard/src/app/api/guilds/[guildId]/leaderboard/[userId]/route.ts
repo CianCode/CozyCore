@@ -129,6 +129,7 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
         totalXp: newXp,
         xpEarnedToday: 0,
         xpEarnedThisHour: 0,
+        monthlyHelperCount: 0,
       };
       await db.insert(memberXp).values(newMember);
       member = {
@@ -137,6 +138,7 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
         lastMessageAt: null,
         lastHourReset: null,
         lastDayReset: null,
+        lastHelperCountReset: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -187,7 +189,6 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
           (roles.find((r) => r.roleId === oldRole)?.xpRequired ?? 0) <
             newRole.xpRequired;
         await sendRoleNotification(
-          guildId,
           config,
           userId,
           newRole.roleId,
@@ -206,11 +207,16 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
       if (config?.autoRemovePreviousRole) {
         await removeDiscordRole(guildId, userId, oldRole);
       }
+
+      // Send role loss notification
+      if (config) {
+        await sendRoleLossNotification(config, userId, oldRole);
+      }
     }
 
     // Send log message
     if (config?.logChannelId) {
-      await sendLogMessage(guildId, config.logChannelId, {
+      await sendLogMessage(config.logChannelId, {
         userId,
         adminId: session.user.id,
         adminName: session.user.name,
@@ -244,7 +250,9 @@ async function updateDiscordRoles(
   newRoleId: string,
   autoRemove: boolean
 ): Promise<void> {
-  if (!BOT_TOKEN) return;
+  if (!BOT_TOKEN) {
+    return;
+  }
 
   // Add new role
   await fetch(
@@ -272,7 +280,9 @@ async function removeDiscordRole(
   userId: string,
   roleId: string
 ): Promise<void> {
-  if (!BOT_TOKEN) return;
+  if (!BOT_TOKEN) {
+    return;
+  }
 
   await fetch(
     `https://discord.com/api/v10/guilds/${guildId}/members/${userId}/roles/${roleId}`,
@@ -284,27 +294,36 @@ async function removeDiscordRole(
 }
 
 async function sendRoleNotification(
-  guildId: string,
   config: typeof levelConfig.$inferSelect,
   userId: string,
   newRoleId: string,
   oldRoleId: string | null,
   isPromotion: boolean
 ): Promise<void> {
-  if (!BOT_TOKEN) return;
+  if (!BOT_TOKEN) {
+    return;
+  }
 
   const channelId = isPromotion
     ? config.congratsChannelId
     : config.demotionChannelId;
-  if (!channelId) return;
+  if (!channelId) {
+    return;
+  }
 
   const title = isPromotion
     ? config.promotionEmbedTitle
     : config.demotionEmbedTitle;
-  const template =
-    (isPromotion
-      ? config.promotionEmbedDescription
-      : config.demotionEmbedDescription) || "{user} earned {role}!";
+
+  // Get template from main description or random alternative
+  const mainTemplate = isPromotion
+    ? config.promotionEmbedDescription
+    : config.demotionEmbedDescription;
+  const alternativeTemplates = isPromotion
+    ? (config.promotionEmbedDescriptions ?? [])
+    : (config.demotionEmbedDescriptions ?? []);
+
+  const template = getRandomTemplate(mainTemplate, alternativeTemplates);
 
   const description = template
     .replace(/{user}/g, `<@${userId}>`)
@@ -332,8 +351,55 @@ async function sendRoleNotification(
   }).catch(() => {});
 }
 
+async function sendRoleLossNotification(
+  config: typeof levelConfig.$inferSelect,
+  userId: string,
+  lostRoleId: string
+): Promise<void> {
+  if (!BOT_TOKEN) {
+    return;
+  }
+
+  // Use demotion channel for role loss notifications
+  const channelId = config.demotionChannelId;
+  if (!channelId) {
+    return;
+  }
+
+  const title = config.roleLossEmbedTitle;
+
+  // Get template from main description or random alternative
+  const mainTemplate =
+    config.roleLossEmbedDescription || "{user} a perdu son rôle {role}!";
+  const alternativeTemplates = config.roleLossEmbedDescriptions ?? [];
+
+  const template = getRandomTemplate(mainTemplate, alternativeTemplates);
+
+  const description = template
+    .replace(/{user}/g, `<@${userId}>`)
+    .replace(/{role}/g, `<@&${lostRoleId}>`);
+
+  const embed: Record<string, unknown> = {
+    color: getRandomPastelDecimal(),
+    description,
+    timestamp: new Date().toISOString(),
+  };
+
+  if (title) {
+    embed.title = title;
+  }
+
+  await fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bot ${BOT_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ embeds: [embed] }),
+  }).catch(() => {});
+}
+
 async function sendLogMessage(
-  guildId: string,
   channelId: string,
   data: {
     userId: string;
@@ -348,7 +414,9 @@ async function sendLogMessage(
     oldRoleId: string | null;
   }
 ): Promise<void> {
-  if (!BOT_TOKEN) return;
+  if (!BOT_TOKEN) {
+    return;
+  }
 
   const action = data.amount > 0 ? "added" : "removed";
   const absAmount = Math.abs(data.amount);
@@ -394,4 +462,24 @@ function getRandomPastelDecimal(): number {
     0xd4_a5_a5, 0xa5_d4_d4, 0xd4_d4_a5, 0xc9_b1_ff,
   ];
   return colors[Math.floor(Math.random() * colors.length)] ?? 0xba_e1_ff;
+}
+
+/**
+ * Get a random template from the main description or alternatives
+ */
+function getRandomTemplate(
+  mainTemplate: string,
+  alternatives: string[]
+): string {
+  // Filter out empty alternatives
+  const validAlternatives = alternatives.filter((t) => t.trim().length > 0);
+
+  if (validAlternatives.length === 0) {
+    return mainTemplate || "{user} earned {role}!";
+  }
+
+  // Combine main template with alternatives for random selection
+  const allTemplates = [mainTemplate, ...validAlternatives];
+  const randomIndex = Math.floor(Math.random() * allTemplates.length);
+  return allTemplates[randomIndex] ?? mainTemplate;
 }

@@ -11,9 +11,12 @@ import {
   AlertCircle,
   ArrowDownUp,
   Bell,
+  Calendar,
   Check,
   Clock,
+  Crown,
   FileText,
+  Gem,
   Hash,
   HelpCircle,
   Loader2,
@@ -60,6 +63,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getRandomPastelHex, parseEmbedTemplate } from "@/lib/embed-utils";
@@ -97,14 +101,52 @@ const DEFAULT_CONFIG: Omit<LevelConfig, "guildId"> = {
   promotionEmbedTitle: "🎉 Level Up!",
   promotionEmbedDescription:
     "Félicitations à {user}, il a obtenu le rôle {role}!",
+  promotionEmbedDescriptions: [],
   demotionEmbedTitle: "⚠️ Role Change",
   demotionEmbedDescription: "{user} a été rétrogradé de {oldRole} à {newRole}!",
+  demotionEmbedDescriptions: [],
   roleLossEmbedTitle: "📉 Role Removed",
   roleLossEmbedDescription: "{user} a perdu son rôle {role}!",
+  roleLossEmbedDescriptions: [],
   rolesEmbedChannelId: null,
   rolesEmbedMessageId: null,
   rolesEmbedTitle: "🏆 Level Roles",
   rolesEmbedDescription: "Earn XP by chatting to unlock these roles!",
+  // Helper Recognition
+  helperRecognitionChannelId: null,
+  helperRecognitionEmbedTitle: "🌟 Helpful Member!",
+  helperRecognitionEmbedDescription:
+    "{helper} was marked as the most helpful by {asker}!",
+  helperRecognitionEmbedDescriptions: [],
+  // Fast Resolution
+  fastResolutionChannelId: null,
+  fastResolutionEmbedTitle: "⚡ Quick Helper!",
+  fastResolutionEmbedDescription:
+    "{helper} solved this issue in under {hours} hours! (+{xp} XP)",
+  fastResolutionEmbedDescriptions: [],
+  // Booster
+  boosterEnabled: false,
+  boosterChannelId: null,
+  boosterXpMultiplier: 1.5,
+  boosterBonusXpPerMessage: 5,
+  boosterHelperBonusMultiplier: 1.25,
+  boosterEmbedTitle: "💎 Thank You, Booster!",
+  boosterEmbedDescription:
+    "Thanks {user} for boosting the server! Enjoy your XP bonuses!",
+  boosterEmbedDescriptions: [],
+  // Monthly Top Helper
+  monthlyTopHelperEnabled: false,
+  monthlyTopHelperChannelId: null,
+  monthlyTopHelperDay: 1,
+  monthlyTopHelperHour: 12,
+  monthlyTopHelperFirst: null,
+  monthlyTopHelperSecond: null,
+  monthlyTopHelperThird: null,
+  monthlyTopHelperEmbedTitle: "🏆 Monthly Top Helpers!",
+  monthlyTopHelperEmbedDescription:
+    "Congratulations to our top helpers this month!\n\n🥇 {first}\n🥈 {second}\n🥉 {third}",
+  monthlyTopHelperEmbedDescriptions: [],
+  lastMonthlyTopHelperRun: null,
 };
 
 export function LevelTab({ guildId }: LevelTabProps) {
@@ -158,7 +200,9 @@ export function LevelTab({ guildId }: LevelTabProps) {
   // Save config
   const saveConfig = useCallback(
     async (updates: Partial<LevelConfig>) => {
-      if (!config) return;
+      if (!config) {
+        return;
+      }
 
       setSaveStatus("saving");
       try {
@@ -184,7 +228,9 @@ export function LevelTab({ guildId }: LevelTabProps) {
 
   // Auto-update roles embed if it exists
   const updateRolesEmbed = useCallback(async () => {
-    if (!config?.rolesEmbedMessageId) return;
+    if (!config?.rolesEmbedMessageId) {
+      return;
+    }
     try {
       await fetch(`/api/guilds/${guildId}/level/roles-embed`, {
         method: "POST",
@@ -276,7 +322,9 @@ export function LevelTab({ guildId }: LevelTabProps) {
 
   // Toggle channel whitelist
   const toggleChannelWhitelist = (channelId: string) => {
-    if (!config) return;
+    if (!config) {
+      return;
+    }
     const current = config.whitelistedChannels || [];
     const updated = current.includes(channelId)
       ? current.filter((id) => id !== channelId)
@@ -286,7 +334,9 @@ export function LevelTab({ guildId }: LevelTabProps) {
 
   // Toggle forum whitelist
   const toggleForumWhitelist = (channelId: string) => {
-    if (!config) return;
+    if (!config) {
+      return;
+    }
     const current = config.whitelistedForums || [];
     const updated = current.includes(channelId)
       ? current.filter((id) => id !== channelId)
@@ -975,7 +1025,9 @@ function LevelRolesSettings({
   );
 
   const handleSendEmbed = async () => {
-    if (!selectedEmbedChannel) return;
+    if (!selectedEmbedChannel) {
+      return;
+    }
 
     setSendingEmbed(true);
     try {
@@ -1000,7 +1052,9 @@ function LevelRolesSettings({
   };
 
   const handleUpdateEmbed = async () => {
-    if (!config.rolesEmbedMessageId) return;
+    if (!config.rolesEmbedMessageId) {
+      return;
+    }
 
     setSendingEmbed(true);
     try {
@@ -1259,7 +1313,9 @@ function LevelRoleCard({
 
   const handleXpChange = (value: number) => {
     setLocalXp(value);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
     debounceRef.current = setTimeout(() => {
       onUpdate({ xpRequired: value });
     }, 500);
@@ -1452,24 +1508,29 @@ function NotificationSettings({
         </CardHeader>
         <CardContent>
           <Tabs className="space-y-4" defaultValue="promotion">
-            <TabsList>
+            <TabsList className="flex-wrap">
               <TabsTrigger value="promotion">🎉 Promotion</TabsTrigger>
               <TabsTrigger value="demotion">⚠️ Demotion</TabsTrigger>
               <TabsTrigger value="loss">📉 Role Loss</TabsTrigger>
+              <TabsTrigger value="helper">🌟 Helper</TabsTrigger>
+              <TabsTrigger value="fast">⚡ Fast Fix</TabsTrigger>
             </TabsList>
 
             <TabsContent className="space-y-4" value="promotion">
               <EmbedEditor
                 description={config.promotionEmbedDescription}
+                descriptions={config.promotionEmbedDescriptions}
                 onDescriptionChange={(value) =>
                   onSave({ promotionEmbedDescription: value })
+                }
+                onDescriptionsChange={(value) =>
+                  onSave({ promotionEmbedDescriptions: value })
                 }
                 onTitleChange={(value) =>
                   onSave({ promotionEmbedTitle: value })
                 }
                 roles={roles}
                 title={config.promotionEmbedTitle}
-                type="promotion"
                 variables={["user", "role", "oldRole"]}
               />
             </TabsContent>
@@ -1477,13 +1538,16 @@ function NotificationSettings({
             <TabsContent className="space-y-4" value="demotion">
               <EmbedEditor
                 description={config.demotionEmbedDescription}
+                descriptions={config.demotionEmbedDescriptions}
                 onDescriptionChange={(value) =>
                   onSave({ demotionEmbedDescription: value })
+                }
+                onDescriptionsChange={(value) =>
+                  onSave({ demotionEmbedDescriptions: value })
                 }
                 onTitleChange={(value) => onSave({ demotionEmbedTitle: value })}
                 roles={roles}
                 title={config.demotionEmbedTitle}
-                type="demotion"
                 variables={["user", "newRole", "oldRole"]}
               />
             </TabsContent>
@@ -1491,18 +1555,384 @@ function NotificationSettings({
             <TabsContent className="space-y-4" value="loss">
               <EmbedEditor
                 description={config.roleLossEmbedDescription}
+                descriptions={config.roleLossEmbedDescriptions}
                 onDescriptionChange={(value) =>
                   onSave({ roleLossEmbedDescription: value })
+                }
+                onDescriptionsChange={(value) =>
+                  onSave({ roleLossEmbedDescriptions: value })
                 }
                 onTitleChange={(value) => onSave({ roleLossEmbedTitle: value })}
                 roles={roles}
                 title={config.roleLossEmbedTitle}
-                type="loss"
                 variables={["user", "role"]}
+              />
+            </TabsContent>
+
+            <TabsContent className="space-y-4" value="helper">
+              <p className="mb-4 text-muted-foreground text-sm">
+                This message is sent directly in the thread when it&apos;s
+                closed with a marked helper.
+              </p>
+              <EmbedEditor
+                description={config.helperRecognitionEmbedDescription}
+                descriptions={config.helperRecognitionEmbedDescriptions}
+                onDescriptionChange={(value) =>
+                  onSave({ helperRecognitionEmbedDescription: value })
+                }
+                onDescriptionsChange={(value) =>
+                  onSave({ helperRecognitionEmbedDescriptions: value })
+                }
+                onTitleChange={(value) =>
+                  onSave({ helperRecognitionEmbedTitle: value })
+                }
+                roles={roles}
+                title={config.helperRecognitionEmbedTitle}
+                variables={["helper", "asker", "thread"]}
+              />
+            </TabsContent>
+
+            <TabsContent className="space-y-4" value="fast">
+              <p className="mb-4 text-muted-foreground text-sm">
+                This message is sent directly in the thread when it&apos;s
+                resolved within the fast resolution time limit.
+              </p>
+              <EmbedEditor
+                description={config.fastResolutionEmbedDescription}
+                descriptions={config.fastResolutionEmbedDescriptions}
+                onDescriptionChange={(value) =>
+                  onSave({ fastResolutionEmbedDescription: value })
+                }
+                onDescriptionsChange={(value) =>
+                  onSave({ fastResolutionEmbedDescriptions: value })
+                }
+                onTitleChange={(value) =>
+                  onSave({ fastResolutionEmbedTitle: value })
+                }
+                roles={roles}
+                title={config.fastResolutionEmbedTitle}
+                variables={["helper", "asker", "hours", "xp", "thread"]}
               />
             </TabsContent>
           </Tabs>
         </CardContent>
+      </Card>
+
+      {/* Booster Settings */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="rounded-lg bg-pink-500/10 p-2">
+                <Gem className="h-5 w-5 text-pink-400" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">Booster Perks</CardTitle>
+                <CardDescription>
+                  Reward server boosters with XP bonuses
+                </CardDescription>
+              </div>
+            </div>
+            <Switch
+              checked={config.boosterEnabled}
+              onCheckedChange={(checked) => onSave({ boosterEnabled: checked })}
+            />
+          </div>
+        </CardHeader>
+        {config.boosterEnabled && (
+          <CardContent className="space-y-6">
+            {/* Booster Channel */}
+            <div className="space-y-2">
+              <Label>Thank You Channel</Label>
+              <ChannelSelect
+                channels={channels}
+                onChange={(value) => onSave({ boosterChannelId: value })}
+                value={config.boosterChannelId}
+              />
+              <p className="text-muted-foreground text-xs">
+                Send a thank you message when someone boosts the server.
+              </p>
+            </div>
+
+            {/* Booster Bonuses */}
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  XP Multiplier
+                  <TooltipIcon text="Multiplier applied to all XP gains" />
+                </Label>
+                <div className="flex items-center gap-3">
+                  <Slider
+                    className="flex-1"
+                    max={3}
+                    min={1}
+                    onValueChange={(value) =>
+                      onSave({ boosterXpMultiplier: value[0] })
+                    }
+                    step={0.1}
+                    value={[config.boosterXpMultiplier]}
+                  />
+                  <span className="w-12 text-center font-mono text-sm">
+                    {config.boosterXpMultiplier}x
+                  </span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  Bonus XP/Message
+                  <TooltipIcon text="Extra XP per message for boosters" />
+                </Label>
+                <div className="flex items-center gap-3">
+                  <Slider
+                    className="flex-1"
+                    max={20}
+                    min={0}
+                    onValueChange={(value) =>
+                      onSave({ boosterBonusXpPerMessage: value[0] })
+                    }
+                    step={1}
+                    value={[config.boosterBonusXpPerMessage]}
+                  />
+                  <span className="w-12 text-center font-mono text-sm">
+                    +{config.boosterBonusXpPerMessage}
+                  </span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  Helper Bonus
+                  <TooltipIcon text="Multiplier for helper XP rewards" />
+                </Label>
+                <div className="flex items-center gap-3">
+                  <Slider
+                    className="flex-1"
+                    max={2}
+                    min={1}
+                    onValueChange={(value) =>
+                      onSave({ boosterHelperBonusMultiplier: value[0] })
+                    }
+                    step={0.05}
+                    value={[config.boosterHelperBonusMultiplier]}
+                  />
+                  <span className="w-12 text-center font-mono text-sm">
+                    {config.boosterHelperBonusMultiplier}x
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Booster Embed */}
+            <div className="space-y-2">
+              <Label>Thank You Message</Label>
+              <EmbedEditor
+                description={config.boosterEmbedDescription}
+                descriptions={config.boosterEmbedDescriptions}
+                onDescriptionChange={(value) =>
+                  onSave({ boosterEmbedDescription: value })
+                }
+                onDescriptionsChange={(value) =>
+                  onSave({ boosterEmbedDescriptions: value })
+                }
+                onTitleChange={(value) => onSave({ boosterEmbedTitle: value })}
+                roles={roles}
+                title={config.boosterEmbedTitle}
+                variables={["user", "multiplier", "bonusXp", "helperBonus"]}
+              />
+            </div>
+          </CardContent>
+        )}
+      </Card>
+
+      {/* Monthly Top Helper */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="rounded-lg bg-amber-500/10 p-2">
+                <Crown className="h-5 w-5 text-amber-400" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">Monthly Top Helpers</CardTitle>
+                <CardDescription>
+                  Announce the top helpers each month
+                </CardDescription>
+              </div>
+            </div>
+            <Switch
+              checked={config.monthlyTopHelperEnabled}
+              onCheckedChange={(checked) =>
+                onSave({ monthlyTopHelperEnabled: checked })
+              }
+            />
+          </div>
+        </CardHeader>
+        {config.monthlyTopHelperEnabled && (
+          <CardContent className="space-y-6">
+            {/* Channel and Schedule */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Announcement Channel</Label>
+                <ChannelSelect
+                  channels={channels}
+                  onChange={(value) =>
+                    onSave({ monthlyTopHelperChannelId: value })
+                  }
+                  value={config.monthlyTopHelperChannelId}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    Day of Month
+                  </Label>
+                  <Select
+                    onValueChange={(value) =>
+                      onSave({
+                        monthlyTopHelperDay: Number.parseInt(value, 10),
+                      })
+                    }
+                    value={config.monthlyTopHelperDay.toString()}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 28 }, (_, i) => i + 1).map(
+                        (day) => (
+                          <SelectItem key={day} value={day.toString()}>
+                            {day}
+                          </SelectItem>
+                        )
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    Hour (UTC)
+                  </Label>
+                  <Select
+                    onValueChange={(value) =>
+                      onSave({
+                        monthlyTopHelperHour: Number.parseInt(value, 10),
+                      })
+                    }
+                    value={config.monthlyTopHelperHour.toString()}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 24 }, (_, i) => i).map((hour) => (
+                        <SelectItem key={hour} value={hour.toString()}>
+                          {hour.toString().padStart(2, "0")}:00
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
+            {/* Rewards */}
+            <div className="space-y-2">
+              <Label>Rewards (XP)</Label>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-amber-500">
+                    <Trophy className="h-4 w-4" />
+                    <span className="font-medium text-sm">🥇 1st Place</span>
+                  </div>
+                  <input
+                    className="h-11 w-full rounded-md border bg-background px-3 text-sm transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    min={0}
+                    onChange={(e) =>
+                      onSave({
+                        monthlyTopHelperFirst: e.target.value
+                          ? Number.parseInt(e.target.value, 10)
+                          : null,
+                      })
+                    }
+                    placeholder="XP reward"
+                    type="number"
+                    value={config.monthlyTopHelperFirst ?? ""}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-zinc-400">
+                    <Trophy className="h-4 w-4" />
+                    <span className="font-medium text-sm">🥈 2nd Place</span>
+                  </div>
+                  <input
+                    className="h-11 w-full rounded-md border bg-background px-3 text-sm transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    min={0}
+                    onChange={(e) =>
+                      onSave({
+                        monthlyTopHelperSecond: e.target.value
+                          ? Number.parseInt(e.target.value, 10)
+                          : null,
+                      })
+                    }
+                    placeholder="XP reward"
+                    type="number"
+                    value={config.monthlyTopHelperSecond ?? ""}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-orange-700">
+                    <Trophy className="h-4 w-4" />
+                    <span className="font-medium text-sm">🥉 3rd Place</span>
+                  </div>
+                  <input
+                    className="h-11 w-full rounded-md border bg-background px-3 text-sm transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    min={0}
+                    onChange={(e) =>
+                      onSave({
+                        monthlyTopHelperThird: e.target.value
+                          ? Number.parseInt(e.target.value, 10)
+                          : null,
+                      })
+                    }
+                    placeholder="XP reward"
+                    type="number"
+                    value={config.monthlyTopHelperThird ?? ""}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Embed */}
+            <div className="space-y-2">
+              <Label>Announcement Message</Label>
+              <EmbedEditor
+                description={config.monthlyTopHelperEmbedDescription}
+                descriptions={config.monthlyTopHelperEmbedDescriptions}
+                onDescriptionChange={(value) =>
+                  onSave({ monthlyTopHelperEmbedDescription: value })
+                }
+                onDescriptionsChange={(value) =>
+                  onSave({ monthlyTopHelperEmbedDescriptions: value })
+                }
+                onTitleChange={(value) =>
+                  onSave({ monthlyTopHelperEmbedTitle: value })
+                }
+                roles={roles}
+                title={config.monthlyTopHelperEmbedTitle}
+                variables={[
+                  "first",
+                  "second",
+                  "third",
+                  "firstXp",
+                  "secondXp",
+                  "thirdXp",
+                  "month",
+                ]}
+              />
+            </div>
+          </CardContent>
+        )}
       </Card>
     </div>
   );
@@ -1510,58 +1940,142 @@ function NotificationSettings({
 
 // Embed Editor Component
 function EmbedEditor({
-  type,
   title,
   description,
+  descriptions,
   variables,
   roles,
   onTitleChange,
   onDescriptionChange,
+  onDescriptionsChange,
 }: {
-  type: "promotion" | "demotion" | "loss";
   title: string;
   description: string;
+  descriptions: string[];
   variables: string[];
   roles: DiscordRole[];
   onTitleChange: (value: string) => void;
   onDescriptionChange: (value: string) => void;
+  onDescriptionsChange: (value: string[]) => void;
 }) {
   const [localTitle, setLocalTitle] = useState(title);
   const [localDescription, setLocalDescription] = useState(description);
+  const [localDescriptions, setLocalDescriptions] =
+    useState<string[]>(descriptions);
   const [showPreview, setShowPreview] = useState(true);
+  const [previewIndex, setPreviewIndex] = useState(-1); // -1 = main description
   const [previewColor] = useState(getRandomPastelHex());
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Sync with props when they change
+  useEffect(() => {
+    setLocalDescriptions(descriptions);
+  }, [descriptions]);
+
   const handleTitleChange = (value: string) => {
     setLocalTitle(value);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
     debounceRef.current = setTimeout(() => onTitleChange(value), 500);
   };
 
   const handleDescriptionChange = (value: string) => {
     setLocalDescription(value);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
     debounceRef.current = setTimeout(() => onDescriptionChange(value), 500);
   };
 
-  const insertVariable = (variable: string) => {
-    const newDescription = `${localDescription}{${variable}}`;
-    setLocalDescription(newDescription);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
+  const handleAdditionalDescriptionChange = (index: number, value: string) => {
+    const newDescriptions = [...localDescriptions];
+    newDescriptions[index] = value;
+    setLocalDescriptions(newDescriptions);
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
     debounceRef.current = setTimeout(
-      () => onDescriptionChange(newDescription),
+      () => onDescriptionsChange(newDescriptions),
       500
     );
   };
 
-  // Sample data for preview
+  const addDescription = () => {
+    const newDescriptions = [...localDescriptions, ""];
+    setLocalDescriptions(newDescriptions);
+    onDescriptionsChange(newDescriptions);
+  };
+
+  const removeDescription = (index: number) => {
+    const newDescriptions = localDescriptions.filter((_, i) => i !== index);
+    setLocalDescriptions(newDescriptions);
+    onDescriptionsChange(newDescriptions);
+    // Adjust preview index if needed
+    if (previewIndex >= newDescriptions.length) {
+      setPreviewIndex(
+        newDescriptions.length > 0 ? newDescriptions.length - 1 : -1
+      );
+    }
+  };
+
+  const insertVariable = (variable: string, targetIndex: number) => {
+    if (targetIndex === -1) {
+      const newDescription = `${localDescription}{${variable}}`;
+      setLocalDescription(newDescription);
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+      debounceRef.current = setTimeout(
+        () => onDescriptionChange(newDescription),
+        500
+      );
+    } else {
+      const newDescriptions = [...localDescriptions];
+      newDescriptions[targetIndex] =
+        `${newDescriptions[targetIndex] ?? ""}{${variable}}`;
+      setLocalDescriptions(newDescriptions);
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+      debounceRef.current = setTimeout(
+        () => onDescriptionsChange(newDescriptions),
+        500
+      );
+    }
+  };
+
+  // Get current preview description
+  const currentPreviewDescription =
+    previewIndex === -1
+      ? localDescription
+      : (localDescriptions[previewIndex] ?? localDescription);
+
+  // Sample data for preview - includes all possible variables
   const sampleRole = roles[0];
-  const previewDescription = parseEmbedTemplate(localDescription, {
+  const previewDescription = parseEmbedTemplate(currentPreviewDescription, {
     user: "@SampleUser",
     role: sampleRole ? `@${sampleRole.name}` : "@NewRole",
     newRole: sampleRole ? `@${sampleRole.name}` : "@NewRole",
     oldRole: "@OldRole",
+    helper: "@HelperUser",
+    asker: "@AskerUser",
+    thread: "#sample-thread",
+    hours: "2",
+    xp: "25",
+    multiplier: "1.5x",
+    bonusXp: "5",
+    helperBonus: "1.25x",
+    first: "@TopHelper1",
+    second: "@TopHelper2",
+    third: "@TopHelper3",
+    firstXp: "500",
+    secondXp: "300",
+    thirdXp: "150",
+    month: "January",
   });
+
+  const totalMessages = 1 + localDescriptions.length;
 
   return (
     <div className="space-y-4">
@@ -1580,31 +2094,92 @@ function EmbedEditor({
             />
           </div>
 
-          {/* Description */}
+          {/* Main Description */}
           <div className="space-y-2">
-            <Label>Description Template</Label>
+            <div className="flex items-center justify-between">
+              <Label>Default Message</Label>
+              {totalMessages > 1 && (
+                <Badge
+                  className="bg-blue-500/10 text-blue-400"
+                  variant="outline"
+                >
+                  Random selection enabled
+                </Badge>
+              )}
+            </div>
             <textarea
-              className="min-h-[100px] w-full resize-none rounded-lg border bg-background px-4 py-3 font-mono text-sm transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="min-h-20 w-full resize-none rounded-lg border bg-background px-4 py-3 font-mono text-sm transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
               onChange={(e) => handleDescriptionChange(e.target.value)}
               placeholder="Enter description template..."
               value={localDescription}
             />
+            <div className="flex flex-wrap gap-2">
+              {variables.map((variable) => (
+                <Button
+                  className="h-7 gap-1 bg-blue-500/10 text-blue-500 text-xs hover:bg-blue-500/20"
+                  key={variable}
+                  onClick={() => insertVariable(variable, -1)}
+                  size="sm"
+                  variant="ghost"
+                >
+                  {`{${variable}}`}
+                </Button>
+              ))}
+            </div>
           </div>
 
-          {/* Variable Buttons */}
-          <div className="flex flex-wrap gap-2">
-            {variables.map((variable) => (
-              <Button
-                className="h-8 gap-1.5 bg-blue-500/10 text-blue-500 hover:bg-blue-500/20"
-                key={variable}
-                onClick={() => insertVariable(variable)}
-                size="sm"
-                variant="ghost"
-              >
-                {`{${variable}}`}
-              </Button>
-            ))}
-          </div>
+          {/* Additional Descriptions */}
+          {localDescriptions.map((desc, index) => (
+            <div className="space-y-2" key={index}>
+              <div className="flex items-center justify-between">
+                <Label>Alternative Message {index + 1}</Label>
+                <Button
+                  className="h-7 w-7 text-destructive hover:bg-destructive/10"
+                  onClick={() => removeDescription(index)}
+                  size="icon"
+                  variant="ghost"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+              <textarea
+                className="min-h-20 w-full resize-none rounded-lg border bg-background px-4 py-3 font-mono text-sm transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                onChange={(e) =>
+                  handleAdditionalDescriptionChange(index, e.target.value)
+                }
+                placeholder="Enter alternative description template..."
+                value={desc}
+              />
+              <div className="flex flex-wrap gap-2">
+                {variables.map((variable) => (
+                  <Button
+                    className="h-7 gap-1 bg-blue-500/10 text-blue-500 text-xs hover:bg-blue-500/20"
+                    key={variable}
+                    onClick={() => insertVariable(variable, index)}
+                    size="sm"
+                    variant="ghost"
+                  >
+                    {`{${variable}}`}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          ))}
+
+          {/* Add Alternative Button */}
+          <Button
+            className="w-full gap-2"
+            onClick={addDescription}
+            variant="outline"
+          >
+            <Plus className="h-4 w-4" />
+            Add Alternative Message
+          </Button>
+          {localDescriptions.length > 0 && (
+            <p className="text-center text-muted-foreground text-xs">
+              A random message will be selected each time a notification is sent
+            </p>
+          )}
         </div>
 
         {/* Preview */}
@@ -1614,14 +2189,36 @@ function EmbedEditor({
               <Label className="text-muted-foreground text-xs uppercase tracking-wider">
                 Preview
               </Label>
-              <Button
-                className="h-7 px-2 text-xs"
-                onClick={() => setShowPreview(!showPreview)}
-                size="sm"
-                variant="ghost"
-              >
-                Hide
-              </Button>
+              <div className="flex items-center gap-2">
+                {totalMessages > 1 && (
+                  <Select
+                    onValueChange={(v) =>
+                      setPreviewIndex(Number.parseInt(v, 10))
+                    }
+                    value={previewIndex.toString()}
+                  >
+                    <SelectTrigger className="h-7 w-[140px] text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="-1">Default</SelectItem>
+                      {localDescriptions.map((_, i) => (
+                        <SelectItem key={i} value={i.toString()}>
+                          Alternative {i + 1}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+                <Button
+                  className="h-7 px-2 text-xs"
+                  onClick={() => setShowPreview(!showPreview)}
+                  size="sm"
+                  variant="ghost"
+                >
+                  Hide
+                </Button>
+              </div>
             </div>
             <div
               className="rounded-lg border bg-[#313338] p-4"
@@ -1686,7 +2283,9 @@ function StatusBadge({
 }
 
 function SaveStatusIndicator({ status }: { status: SaveStatus }) {
-  if (status === "idle") return null;
+  if (status === "idle") {
+    return null;
+  }
 
   const statusConfig = {
     saving: {
@@ -1757,7 +2356,9 @@ function NumberInput({
       );
       setLocalValue(clampedVal);
 
-      if (debounceRef.current) clearTimeout(debounceRef.current);
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
       debounceRef.current = setTimeout(() => {
         onChange(clampedVal);
       }, 500);

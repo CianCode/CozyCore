@@ -3,6 +3,7 @@ import {
   integer,
   jsonb,
   pgTable,
+  real,
   text,
   timestamp,
 } from "drizzle-orm/pg-core";
@@ -171,18 +172,27 @@ export const levelConfig = pgTable("level_config", {
   promotionEmbedDescription: text("promotion_embed_description")
     .notNull()
     .default("Félicitations à {user}, il a obtenu le rôle {role}!"),
+  promotionEmbedDescriptions: jsonb("promotion_embed_descriptions")
+    .$type<string[]>()
+    .default([]),
   demotionEmbedTitle: text("demotion_embed_title")
     .notNull()
     .default("⚠️ Role Change"),
   demotionEmbedDescription: text("demotion_embed_description")
     .notNull()
     .default("{user} a été rétrogradé de {oldRole} à {newRole}!"),
+  demotionEmbedDescriptions: jsonb("demotion_embed_descriptions")
+    .$type<string[]>()
+    .default([]),
   roleLossEmbedTitle: text("role_loss_embed_title")
     .notNull()
     .default("📉 Role Removed"),
   roleLossEmbedDescription: text("role_loss_embed_description")
     .notNull()
     .default("{user} a perdu son rôle {role}!"),
+  roleLossEmbedDescriptions: jsonb("role_loss_embed_descriptions")
+    .$type<string[]>()
+    .default([]),
   // Roles Embed Settings
   rolesEmbedChannelId: text("roles_embed_channel_id"),
   rolesEmbedMessageId: text("roles_embed_message_id"),
@@ -192,6 +202,89 @@ export const levelConfig = pgTable("level_config", {
   rolesEmbedDescription: text("roles_embed_description")
     .notNull()
     .default("Earn XP by chatting to unlock these roles!"),
+  // Helper Recognition Settings
+  helperRecognitionChannelId: text("helper_recognition_channel_id"),
+  helperRecognitionEmbedTitle: text("helper_recognition_embed_title")
+    .notNull()
+    .default("⭐ Helper of the Thread"),
+  helperRecognitionEmbedDescription: text(
+    "helper_recognition_embed_description"
+  )
+    .notNull()
+    .default(
+      "{helper} was marked as the most helpful in this thread! 🙌\n\nThanks for taking the time to share your knowledge and solve {asker}'s problem. The community grows stronger with members like you!\n\n**Reward:** +{xp} XP"
+    ),
+  helperRecognitionEmbedDescriptions: jsonb(
+    "helper_recognition_embed_descriptions"
+  )
+    .$type<string[]>()
+    .default([]),
+  // Fast Resolution Settings
+  fastResolutionChannelId: text("fast_resolution_channel_id"),
+  fastResolutionEmbedTitle: text("fast_resolution_embed_title")
+    .notNull()
+    .default("⚡ Lightning Fast!"),
+  fastResolutionEmbedDescription: text("fast_resolution_embed_description")
+    .notNull()
+    .default(
+      "Wow! {helper} solved this issue in under {hours} hours! 🚀\n\nQuick, accurate, and incredibly helpful. This is what great support looks like!\n\n**Bonus Reward:** +{xp} XP"
+    ),
+  fastResolutionEmbedDescriptions: jsonb("fast_resolution_embed_descriptions")
+    .$type<string[]>()
+    .default([]),
+  // Booster Thank You Settings
+  boosterEnabled: boolean("booster_enabled").notNull().default(false),
+  boosterChannelId: text("booster_channel_id"),
+  boosterXpMultiplier: real("booster_xp_multiplier").notNull().default(1.5),
+  boosterBonusXpPerMessage: integer("booster_bonus_xp_per_message")
+    .notNull()
+    .default(5),
+  boosterHelperBonusMultiplier: real("booster_helper_bonus_multiplier")
+    .notNull()
+    .default(2),
+  boosterEmbedTitle: text("booster_embed_title")
+    .notNull()
+    .default("💗 Thank You for Boosting!"),
+  boosterEmbedDescription: text("booster_embed_description")
+    .notNull()
+    .default(
+      "{user} just boosted the server! 🎉\n\nYour support helps keep the server running smoothly and unlocks awesome perks for everyone. You're amazing!\n\n**Your Perks:**\n- {multiplier}× XP multiplier on all messages\n- +{bonusXp} bonus XP per message\n- Double helper recognition bonus\n\nThank you for believing in our community! 🌸"
+    ),
+  boosterEmbedDescriptions: jsonb("booster_embed_descriptions")
+    .$type<string[]>()
+    .default([]),
+  // Monthly Top Helper Settings
+  monthlyTopHelperEnabled: boolean("monthly_top_helper_enabled")
+    .notNull()
+    .default(false),
+  monthlyTopHelperChannelId: text("monthly_top_helper_channel_id"),
+  monthlyTopHelperDay: integer("monthly_top_helper_day").notNull().default(1), // Day of month (1-28)
+  monthlyTopHelperHour: integer("monthly_top_helper_hour")
+    .notNull()
+    .default(12), // Hour (0-23)
+  monthlyTopHelperFirst: integer("monthly_top_helper_first_xp")
+    .notNull()
+    .default(250),
+  monthlyTopHelperSecond: integer("monthly_top_helper_second_xp")
+    .notNull()
+    .default(150),
+  monthlyTopHelperThird: integer("monthly_top_helper_third_xp")
+    .notNull()
+    .default(100),
+  monthlyTopHelperEmbedTitle: text("monthly_top_helper_embed_title")
+    .notNull()
+    .default("🌟 Monthly MVP: Top Helpers!"),
+  monthlyTopHelperEmbedDescription: text("monthly_top_helper_embed_description")
+    .notNull()
+    .default(
+      "Let's celebrate this month's most helpful community members! 👏\n\n🥇 **1st Place:** {user1} - {count1} threads solved\n🥈 **2nd Place:** {user2} - {count2} threads solved\n🥉 **3rd Place:** {user3} - {count3} threads solved\n\n**Rewards:**\n- 1st: +{xp1} XP\n- 2nd: +{xp2} XP\n- 3rd: +{xp3} XP\n\nThank you for making this such a supportive place to learn and grow! 💚\n\n*Want to be featured next month? Help out in our forum channels!*"
+    ),
+  monthlyTopHelperEmbedDescriptions: jsonb(
+    "monthly_top_helper_embed_descriptions"
+  )
+    .$type<string[]>()
+    .default([]),
+  lastMonthlyTopHelperRun: timestamp("last_monthly_top_helper_run"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -221,6 +314,9 @@ export const memberXp = pgTable("member_xp", {
   xpEarnedThisHour: integer("xp_earned_this_hour").notNull().default(0),
   lastHourReset: timestamp("last_hour_reset"),
   lastDayReset: timestamp("last_day_reset"),
+  // Monthly helper tracking
+  monthlyHelperCount: integer("monthly_helper_count").notNull().default(0),
+  lastHelperCountReset: timestamp("last_helper_count_reset"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

@@ -104,14 +104,53 @@ export async function GET(_request: Request, { params }: { params: Params }) {
           logChannelId: config.logChannelId,
           promotionEmbedTitle: config.promotionEmbedTitle,
           promotionEmbedDescription: config.promotionEmbedDescription,
+          promotionEmbedDescriptions: config.promotionEmbedDescriptions ?? [],
           demotionEmbedTitle: config.demotionEmbedTitle,
           demotionEmbedDescription: config.demotionEmbedDescription,
+          demotionEmbedDescriptions: config.demotionEmbedDescriptions ?? [],
           roleLossEmbedTitle: config.roleLossEmbedTitle,
           roleLossEmbedDescription: config.roleLossEmbedDescription,
+          roleLossEmbedDescriptions: config.roleLossEmbedDescriptions ?? [],
           rolesEmbedChannelId: config.rolesEmbedChannelId,
           rolesEmbedMessageId: config.rolesEmbedMessageId,
           rolesEmbedTitle: config.rolesEmbedTitle,
           rolesEmbedDescription: config.rolesEmbedDescription,
+          // Helper Recognition
+          helperRecognitionChannelId: config.helperRecognitionChannelId,
+          helperRecognitionEmbedTitle: config.helperRecognitionEmbedTitle,
+          helperRecognitionEmbedDescription:
+            config.helperRecognitionEmbedDescription,
+          helperRecognitionEmbedDescriptions:
+            config.helperRecognitionEmbedDescriptions ?? [],
+          // Fast Resolution
+          fastResolutionChannelId: config.fastResolutionChannelId,
+          fastResolutionEmbedTitle: config.fastResolutionEmbedTitle,
+          fastResolutionEmbedDescription: config.fastResolutionEmbedDescription,
+          fastResolutionEmbedDescriptions:
+            config.fastResolutionEmbedDescriptions ?? [],
+          // Booster
+          boosterEnabled: config.boosterEnabled,
+          boosterChannelId: config.boosterChannelId,
+          boosterXpMultiplier: config.boosterXpMultiplier,
+          boosterBonusXpPerMessage: config.boosterBonusXpPerMessage,
+          boosterHelperBonusMultiplier: config.boosterHelperBonusMultiplier,
+          boosterEmbedTitle: config.boosterEmbedTitle,
+          boosterEmbedDescription: config.boosterEmbedDescription,
+          boosterEmbedDescriptions: config.boosterEmbedDescriptions ?? [],
+          // Monthly Top Helper
+          monthlyTopHelperEnabled: config.monthlyTopHelperEnabled,
+          monthlyTopHelperChannelId: config.monthlyTopHelperChannelId,
+          monthlyTopHelperDay: config.monthlyTopHelperDay,
+          monthlyTopHelperHour: config.monthlyTopHelperHour,
+          monthlyTopHelperFirst: config.monthlyTopHelperFirst,
+          monthlyTopHelperSecond: config.monthlyTopHelperSecond,
+          monthlyTopHelperThird: config.monthlyTopHelperThird,
+          monthlyTopHelperEmbedTitle: config.monthlyTopHelperEmbedTitle,
+          monthlyTopHelperEmbedDescription:
+            config.monthlyTopHelperEmbedDescription,
+          monthlyTopHelperEmbedDescriptions:
+            config.monthlyTopHelperEmbedDescriptions ?? [],
+          lastMonthlyTopHelperRun: config.lastMonthlyTopHelperRun,
         }
       : {
           guildId,
@@ -141,15 +180,53 @@ export async function GET(_request: Request, { params }: { params: Params }) {
           promotionEmbedTitle: "🎉 Level Up!",
           promotionEmbedDescription:
             "Félicitations à {user}, il a obtenu le rôle {role}!",
+          promotionEmbedDescriptions: [],
           demotionEmbedTitle: "⚠️ Role Change",
           demotionEmbedDescription:
             "{user} a été rétrogradé de {oldRole} à {newRole}!",
+          demotionEmbedDescriptions: [],
           roleLossEmbedTitle: "📉 Role Removed",
           roleLossEmbedDescription: "{user} a perdu son rôle {role}!",
+          roleLossEmbedDescriptions: [],
           rolesEmbedChannelId: null,
           rolesEmbedMessageId: null,
           rolesEmbedTitle: "🏆 Level Roles",
           rolesEmbedDescription: "Earn XP by chatting to unlock these roles!",
+          // Helper Recognition
+          helperRecognitionChannelId: null,
+          helperRecognitionEmbedTitle: "🌟 Helpful Member!",
+          helperRecognitionEmbedDescription:
+            "{helper} was marked as the most helpful by {asker}!",
+          helperRecognitionEmbedDescriptions: [],
+          // Fast Resolution
+          fastResolutionChannelId: null,
+          fastResolutionEmbedTitle: "⚡ Quick Helper!",
+          fastResolutionEmbedDescription:
+            "{helper} solved this issue in under {hours} hours! (+{xp} XP)",
+          fastResolutionEmbedDescriptions: [],
+          // Booster
+          boosterEnabled: false,
+          boosterChannelId: null,
+          boosterXpMultiplier: 1.5,
+          boosterBonusXpPerMessage: 5,
+          boosterHelperBonusMultiplier: 1.25,
+          boosterEmbedTitle: "💎 Thank You, Booster!",
+          boosterEmbedDescription:
+            "Thanks {user} for boosting the server! Enjoy your XP bonuses!",
+          boosterEmbedDescriptions: [],
+          // Monthly Top Helper
+          monthlyTopHelperEnabled: false,
+          monthlyTopHelperChannelId: null,
+          monthlyTopHelperDay: 1,
+          monthlyTopHelperHour: 12,
+          monthlyTopHelperFirst: null,
+          monthlyTopHelperSecond: null,
+          monthlyTopHelperThird: null,
+          monthlyTopHelperEmbedTitle: "🏆 Monthly Top Helpers!",
+          monthlyTopHelperEmbedDescription:
+            "Congratulations to our top helpers this month!\n\n🥇 {first}\n🥈 {second}\n🥉 {third}",
+          monthlyTopHelperEmbedDescriptions: [],
+          lastMonthlyTopHelperRun: null,
         };
 
     const responseRoles: LevelRole[] = roles.map((r) => ({
@@ -261,13 +338,60 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
         promotionEmbedDescription:
           body.promotionEmbedDescription ??
           "Félicitations à {user}, il a obtenu le rôle {role}!",
+        promotionEmbedDescriptions: body.promotionEmbedDescriptions ?? [],
         demotionEmbedTitle: body.demotionEmbedTitle ?? "⚠️ Role Change",
         demotionEmbedDescription:
           body.demotionEmbedDescription ??
           "{user} a été rétrogradé de {oldRole} à {newRole}!",
+        demotionEmbedDescriptions: body.demotionEmbedDescriptions ?? [],
         roleLossEmbedTitle: body.roleLossEmbedTitle ?? "📉 Role Removed",
         roleLossEmbedDescription:
           body.roleLossEmbedDescription ?? "{user} a perdu son rôle {role}!",
+        roleLossEmbedDescriptions: body.roleLossEmbedDescriptions ?? [],
+        // Helper Recognition
+        helperRecognitionChannelId: body.helperRecognitionChannelId ?? null,
+        helperRecognitionEmbedTitle:
+          body.helperRecognitionEmbedTitle ?? "🌟 Helpful Member!",
+        helperRecognitionEmbedDescription:
+          body.helperRecognitionEmbedDescription ??
+          "{helper} was marked as the most helpful by {asker}!",
+        helperRecognitionEmbedDescriptions:
+          body.helperRecognitionEmbedDescriptions ?? [],
+        // Fast Resolution
+        fastResolutionChannelId: body.fastResolutionChannelId ?? null,
+        fastResolutionEmbedTitle:
+          body.fastResolutionEmbedTitle ?? "⚡ Quick Helper!",
+        fastResolutionEmbedDescription:
+          body.fastResolutionEmbedDescription ??
+          "{helper} solved this issue in under {hours} hours! (+{xp} XP)",
+        fastResolutionEmbedDescriptions:
+          body.fastResolutionEmbedDescriptions ?? [],
+        // Booster
+        boosterEnabled: body.boosterEnabled ?? false,
+        boosterChannelId: body.boosterChannelId ?? null,
+        boosterXpMultiplier: body.boosterXpMultiplier ?? 1.5,
+        boosterBonusXpPerMessage: body.boosterBonusXpPerMessage ?? 5,
+        boosterHelperBonusMultiplier: body.boosterHelperBonusMultiplier ?? 1.25,
+        boosterEmbedTitle: body.boosterEmbedTitle ?? "💎 Thank You, Booster!",
+        boosterEmbedDescription:
+          body.boosterEmbedDescription ??
+          "Thanks {user} for boosting the server! Enjoy your XP bonuses!",
+        boosterEmbedDescriptions: body.boosterEmbedDescriptions ?? [],
+        // Monthly Top Helper
+        monthlyTopHelperEnabled: body.monthlyTopHelperEnabled ?? false,
+        monthlyTopHelperChannelId: body.monthlyTopHelperChannelId ?? null,
+        monthlyTopHelperDay: body.monthlyTopHelperDay ?? 1,
+        monthlyTopHelperHour: body.monthlyTopHelperHour ?? 12,
+        monthlyTopHelperFirst: body.monthlyTopHelperFirst ?? null,
+        monthlyTopHelperSecond: body.monthlyTopHelperSecond ?? null,
+        monthlyTopHelperThird: body.monthlyTopHelperThird ?? null,
+        monthlyTopHelperEmbedTitle:
+          body.monthlyTopHelperEmbedTitle ?? "🏆 Monthly Top Helpers!",
+        monthlyTopHelperEmbedDescription:
+          body.monthlyTopHelperEmbedDescription ??
+          "Congratulations to our top helpers this month!\n\n🥇 {first}\n🥈 {second}\n🥉 {third}",
+        monthlyTopHelperEmbedDescriptions:
+          body.monthlyTopHelperEmbedDescriptions ?? [],
       })
       .onConflictDoUpdate({
         target: levelConfig.guildId,
@@ -299,13 +423,61 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
           promotionEmbedDescription:
             body.promotionEmbedDescription ??
             "Félicitations à {user}, il a obtenu le rôle {role}!",
+          promotionEmbedDescriptions: body.promotionEmbedDescriptions ?? [],
           demotionEmbedTitle: body.demotionEmbedTitle ?? "⚠️ Role Change",
           demotionEmbedDescription:
             body.demotionEmbedDescription ??
             "{user} a été rétrogradé de {oldRole} à {newRole}!",
+          demotionEmbedDescriptions: body.demotionEmbedDescriptions ?? [],
           roleLossEmbedTitle: body.roleLossEmbedTitle ?? "📉 Role Removed",
           roleLossEmbedDescription:
             body.roleLossEmbedDescription ?? "{user} a perdu son rôle {role}!",
+          roleLossEmbedDescriptions: body.roleLossEmbedDescriptions ?? [],
+          // Helper Recognition
+          helperRecognitionChannelId: body.helperRecognitionChannelId ?? null,
+          helperRecognitionEmbedTitle:
+            body.helperRecognitionEmbedTitle ?? "🌟 Helpful Member!",
+          helperRecognitionEmbedDescription:
+            body.helperRecognitionEmbedDescription ??
+            "{helper} was marked as the most helpful by {asker}!",
+          helperRecognitionEmbedDescriptions:
+            body.helperRecognitionEmbedDescriptions ?? [],
+          // Fast Resolution
+          fastResolutionChannelId: body.fastResolutionChannelId ?? null,
+          fastResolutionEmbedTitle:
+            body.fastResolutionEmbedTitle ?? "⚡ Quick Helper!",
+          fastResolutionEmbedDescription:
+            body.fastResolutionEmbedDescription ??
+            "{helper} solved this issue in under {hours} hours! (+{xp} XP)",
+          fastResolutionEmbedDescriptions:
+            body.fastResolutionEmbedDescriptions ?? [],
+          // Booster
+          boosterEnabled: body.boosterEnabled ?? false,
+          boosterChannelId: body.boosterChannelId ?? null,
+          boosterXpMultiplier: body.boosterXpMultiplier ?? 1.5,
+          boosterBonusXpPerMessage: body.boosterBonusXpPerMessage ?? 5,
+          boosterHelperBonusMultiplier:
+            body.boosterHelperBonusMultiplier ?? 1.25,
+          boosterEmbedTitle: body.boosterEmbedTitle ?? "💎 Thank You, Booster!",
+          boosterEmbedDescription:
+            body.boosterEmbedDescription ??
+            "Thanks {user} for boosting the server! Enjoy your XP bonuses!",
+          boosterEmbedDescriptions: body.boosterEmbedDescriptions ?? [],
+          // Monthly Top Helper
+          monthlyTopHelperEnabled: body.monthlyTopHelperEnabled ?? false,
+          monthlyTopHelperChannelId: body.monthlyTopHelperChannelId ?? null,
+          monthlyTopHelperDay: body.monthlyTopHelperDay ?? 1,
+          monthlyTopHelperHour: body.monthlyTopHelperHour ?? 12,
+          monthlyTopHelperFirst: body.monthlyTopHelperFirst ?? null,
+          monthlyTopHelperSecond: body.monthlyTopHelperSecond ?? null,
+          monthlyTopHelperThird: body.monthlyTopHelperThird ?? null,
+          monthlyTopHelperEmbedTitle:
+            body.monthlyTopHelperEmbedTitle ?? "🏆 Monthly Top Helpers!",
+          monthlyTopHelperEmbedDescription:
+            body.monthlyTopHelperEmbedDescription ??
+            "Congratulations to our top helpers this month!\n\n🥇 {first}\n🥈 {second}\n🥉 {third}",
+          monthlyTopHelperEmbedDescriptions:
+            body.monthlyTopHelperEmbedDescriptions ?? [],
           updatedAt: new Date(),
         },
       })
