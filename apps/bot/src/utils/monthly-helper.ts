@@ -162,12 +162,15 @@ async function announceTopHelpers(
     mainTemplate;
 
   const description = template
-    .replace(/{first}/g, first ? `<@${first.userId}>` : "N/A")
-    .replace(/{second}/g, second ? `<@${second.userId}>` : "N/A")
-    .replace(/{third}/g, third ? `<@${third.userId}>` : "N/A")
-    .replace(/{firstXp}/g, rewards[0]?.toString() ?? "0")
-    .replace(/{secondXp}/g, rewards[1]?.toString() ?? "0")
-    .replace(/{thirdXp}/g, rewards[2]?.toString() ?? "0")
+    .replace(/{user1}/g, first ? `<@${first.userId}>` : "N/A")
+    .replace(/{user2}/g, second ? `<@${second.userId}>` : "N/A")
+    .replace(/{user3}/g, third ? `<@${third.userId}>` : "N/A")
+    .replace(/{count1}/g, first?.monthlyHelperCount?.toString() ?? "0")
+    .replace(/{count2}/g, second?.monthlyHelperCount?.toString() ?? "0")
+    .replace(/{count3}/g, third?.monthlyHelperCount?.toString() ?? "0")
+    .replace(/{xp1}/g, rewards[0]?.toString() ?? "0")
+    .replace(/{xp2}/g, rewards[1]?.toString() ?? "0")
+    .replace(/{xp3}/g, rewards[2]?.toString() ?? "0")
     .replace(/{month}/g, currentMonth);
 
   const embed = new EmbedBuilder()
