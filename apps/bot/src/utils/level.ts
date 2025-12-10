@@ -539,5 +539,14 @@ export async function incrementMonthlyHelperCount(
         updatedAt: new Date(),
       })
       .where(eq(memberXp.id, member.id));
+  } else {
+    // Create new record if user doesn't have one yet
+    await db.insert(memberXp).values({
+      id: `${guildId}-${userId}`,
+      guildId,
+      userId,
+      totalXp: 0,
+      monthlyHelperCount: 1,
+    });
   }
 }

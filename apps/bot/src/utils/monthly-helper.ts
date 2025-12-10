@@ -6,13 +6,13 @@ import { awardXp } from "./level";
 
 type LevelConfig = typeof levelConfig.$inferSelect;
 
-const CHECK_INTERVAL_MS = 60 * 60 * 1000; // Check every hour
+const CHECK_INTERVAL_MS = 60 * 1000; // Check every minute for faster "Run Now" response
 
 /**
  * Start the monthly top helper scheduler
  */
 export function startMonthlyHelperScheduler(client: Client<true>): void {
-  console.log("[MonthlyHelper] Starting scheduler...");
+  console.log("[MonthlyHelper] Starting scheduler (checking every minute)...");
 
   // Check immediately on startup
   checkAllGuilds(client);

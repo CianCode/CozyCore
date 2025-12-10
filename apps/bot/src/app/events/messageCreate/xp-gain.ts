@@ -79,13 +79,20 @@ export default async function handleXpGain(message: Message): Promise<void> {
         config.minXpPerMessage
     );
 
-    // Apply booster XP multiplier
-    if (config.boosterEnabled && config.boosterXpMultiplier > 1) {
+    // Apply booster perks (multiplier + bonus XP)
+    if (config.boosterEnabled) {
       const guildMember = await message.guild.members
         .fetch(userId)
         .catch(() => null);
       if (guildMember?.premiumSince) {
-        xpGain = Math.floor(xpGain * config.boosterXpMultiplier);
+        // Apply XP multiplier
+        if (config.boosterXpMultiplier > 1) {
+          xpGain = Math.floor(xpGain * config.boosterXpMultiplier);
+        }
+        // Add bonus XP per message
+        if (config.boosterBonusXpPerMessage > 0) {
+          xpGain += config.boosterBonusXpPerMessage;
+        }
       }
     }
 
