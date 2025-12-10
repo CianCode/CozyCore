@@ -1,6 +1,7 @@
 "use client";
 
-import type { EmbedData } from "@cozycore/types";
+import type { EmbedButton, EmbedData } from "@cozycore/types";
+import { ExternalLink } from "lucide-react";
 
 type EmbedPreviewProps = {
   embed: EmbedData;
@@ -10,6 +11,7 @@ type EmbedPreviewProps = {
 type MessagePreviewProps = {
   content?: string | null;
   embeds: EmbedData[];
+  buttons?: EmbedButton[];
   className?: string;
 };
 
@@ -268,6 +270,7 @@ export function EmbedPreview({ embed, className = "" }: EmbedPreviewProps) {
 export function MessagePreview({
   content,
   embeds,
+  buttons,
   className = "",
 }: MessagePreviewProps) {
   return (
@@ -304,13 +307,54 @@ export function MessagePreview({
         </div>
       )}
 
+      {/* Buttons */}
+      {buttons && buttons.length > 0 && (
+        <div className="flex flex-wrap gap-2 pl-12">
+          {buttons.map((button) => (
+            <ButtonPreview button={button} key={button.id} />
+          ))}
+        </div>
+      )}
+
       {/* Empty state */}
-      {!content && embeds.length === 0 && (
+      {!content && embeds.length === 0 && (!buttons || buttons.length === 0) && (
         <div className="pl-12 text-[#72767d]">
           Your message preview will appear here...
         </div>
       )}
     </div>
+  );
+}
+
+// Button preview component
+function ButtonPreview({ button }: { button: EmbedButton }) {
+  const getButtonStyle = () => {
+    switch (button.style) {
+      case "primary":
+        return "bg-[#5865f2] hover:bg-[#4752c4] text-white";
+      case "secondary":
+        return "bg-[#4f545c] hover:bg-[#686d73] text-white";
+      case "success":
+        return "bg-[#3ba55c] hover:bg-[#2d7d46] text-white";
+      case "danger":
+        return "bg-[#ed4245] hover:bg-[#c93b3e] text-white";
+      case "link":
+      default:
+        return "bg-[#4f545c] hover:bg-[#686d73] text-white";
+    }
+  };
+
+  return (
+    <a
+      className={`inline-flex items-center gap-1.5 rounded px-4 py-2 font-medium text-sm transition-colors ${getButtonStyle()}`}
+      href={button.url || "#"}
+      rel="noopener noreferrer"
+      target="_blank"
+    >
+      {button.emoji && <span>{button.emoji}</span>}
+      <span>{button.label || "Button"}</span>
+      {button.style === "link" && <ExternalLink className="h-3.5 w-3.5" />}
+    </a>
   );
 }
 

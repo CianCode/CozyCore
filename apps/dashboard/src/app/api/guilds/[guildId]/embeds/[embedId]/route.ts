@@ -1,5 +1,5 @@
 import { accounts, db, guilds, savedEmbedMessages } from "@cozycore/db";
-import type { EmbedData, SavedEmbedMessage } from "@cozycore/types";
+import type { EmbedButton, EmbedData, SavedEmbedMessage } from "@cozycore/types";
 import { and, eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
@@ -85,6 +85,7 @@ export async function GET(_request: Request, { params }: { params: Params }) {
       discordMessageId: embed.discordMessageId,
       content: embed.content,
       embeds: (embed.embeds as EmbedData[]) ?? [],
+      buttons: (embed.buttons as EmbedButton[]) ?? [],
       createdAt: embed.createdAt,
       updatedAt: embed.updatedAt,
     };
@@ -154,7 +155,8 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
     }
 
     const body = await request.json();
-    const { name, channelId, content, embeds, discordMessageId } = body;
+    const { name, channelId, content, embeds, buttons, discordMessageId } =
+      body;
 
     const [updatedEmbed] = await db
       .update(savedEmbedMessages)
@@ -163,6 +165,7 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
         channelId: channelId !== undefined ? channelId : undefined,
         content: content !== undefined ? content : undefined,
         embeds: embeds ?? undefined,
+        buttons: buttons !== undefined ? buttons : undefined,
         discordMessageId:
           discordMessageId !== undefined ? discordMessageId : undefined,
         updatedAt: new Date(),
@@ -190,6 +193,7 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
       discordMessageId: updatedEmbed.discordMessageId,
       content: updatedEmbed.content,
       embeds: (updatedEmbed.embeds as EmbedData[]) ?? [],
+      buttons: (updatedEmbed.buttons as EmbedButton[]) ?? [],
       createdAt: updatedEmbed.createdAt,
       updatedAt: updatedEmbed.updatedAt,
     };

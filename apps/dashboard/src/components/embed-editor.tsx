@@ -1,8 +1,10 @@
 "use client";
 
 import type {
+  ButtonStyle,
   DiscordChannel,
   DiscordRole,
+  EmbedButton,
   EmbedData,
   EmbedField,
   SavedEmbedMessage,
@@ -12,6 +14,7 @@ import {
   AlertCircle,
   ChevronDown,
   ChevronUp,
+  ExternalLink,
   GripVertical,
   Hash,
   Loader2,
@@ -63,12 +66,14 @@ type EmbedEditorProps = {
     channelId: string | null;
     content: string | null;
     embeds: EmbedData[];
+    buttons?: EmbedButton[];
   }) => Promise<{ success: boolean; error?: string }>;
   onSaveAndSend: (data: {
     name: string;
     channelId: string | null;
     content: string | null;
     embeds: EmbedData[];
+    buttons?: EmbedButton[];
   }) => Promise<{ success: boolean; error?: string }>;
   onCancel: () => void;
   isSaving: boolean;
@@ -124,6 +129,25 @@ function createEmptyField(): EmbedField {
   };
 }
 
+// Create empty button
+function createEmptyButton(): EmbedButton {
+  return {
+    id: generateId(),
+    label: "",
+    style: "link",
+    url: "",
+  };
+}
+
+// Button style options
+const BUTTON_STYLES: { value: ButtonStyle; label: string; color: string }[] = [
+  { value: "link", label: "Link", color: "#5865f2" },
+  { value: "primary", label: "Primary (Blue)", color: "#5865f2" },
+  { value: "secondary", label: "Secondary (Gray)", color: "#4f545c" },
+  { value: "success", label: "Success (Green)", color: "#3ba55c" },
+  { value: "danger", label: "Danger (Red)", color: "#ed4245" },
+];
+
 export function EmbedEditor({
   guildId,
   channels,
@@ -154,6 +178,15 @@ export function EmbedEditor({
       }));
     }
     return [createEmptyEmbed()];
+  });
+  const [buttons, setButtons] = useState<EmbedButton[]>(() => {
+    if (initialData?.buttons && initialData.buttons.length > 0) {
+      return initialData.buttons.map((btn) => ({
+        ...btn,
+        id: btn.id || generateId(),
+      }));
+    }
+    return [];
   });
 
   // UI state
@@ -201,9 +234,10 @@ export function EmbedEditor({
       name !== (initialData?.name ?? "") ||
       channelId !== (initialData?.channelId ?? null) ||
       content !== (initialData?.content ?? "") ||
-      JSON.stringify(embeds) !== JSON.stringify(initialData?.embeds ?? []);
+      JSON.stringify(embeds) !== JSON.stringify(initialData?.embeds ?? []) ||
+      JSON.stringify(buttons) !== JSON.stringify(initialData?.buttons ?? []);
     setHasUnsavedChanges(hasChanges);
-  }, [name, channelId, content, embeds, initialData]);
+  }, [name, channelId, content, embeds, buttons, initialData]);
 
   // Validate embeds
   const validateEmbeds = useCallback(() => {
@@ -269,9 +303,25 @@ export function EmbedEditor({
       }
     }
 
+    // Validate buttons
+    for (const [index, button] of buttons.entries()) {
+      const btnNum = index + 1;
+      if (!button.label.trim()) {
+        errors.push(`Button ${btnNum}: Label is required`);
+      }
+      if (button.label.length > EMBED_LIMITS.BUTTON_LABEL_MAX) {
+        errors.push(
+          `Button ${btnNum}: Label exceeds ${EMBED_LIMITS.BUTTON_LABEL_MAX} characters`
+        );
+      }
+      if (button.style === "link" && !button.url?.trim()) {
+        errors.push(`Button ${btnNum}: URL is required for link buttons`);
+      }
+    }
+
     setValidationErrors(errors);
     return errors.length === 0;
-  }, [name, embeds]);
+  }, [name, embeds, buttons]);
 
   // Update single embed
   const updateEmbed = (index: number, updates: Partial<EmbedData>) => {
@@ -362,6 +412,22 @@ export function EmbedEditor({
     updateEmbed(embedIndex, { fields: newFields });
   };
 
+  // Button management
+  const addButton = () => {
+    if (buttons.length >= EMBED_LIMITS.BUTTONS_MAX) return;
+    setButtons((prev) => [...prev, createEmptyButton()]);
+  };
+
+  const updateButton = (index: number, updates: Partial<EmbedButton>) => {
+    setButtons((prev) =>
+      prev.map((btn, i) => (i === index ? { ...btn, ...updates } : btn))
+    );
+  };
+
+  const removeButton = (index: number) => {
+    setButtons((prev) => prev.filter((_, i) => i !== index));
+  };
+
   // Handle save
   const handleSave = async () => {
     if (!validateEmbeds()) return;
@@ -370,6 +436,7 @@ export function EmbedEditor({
       channelId,
       content: content || null,
       embeds,
+      buttons: buttons.length > 0 ? buttons : undefined,
     });
   };
 
@@ -385,6 +452,7 @@ export function EmbedEditor({
       channelId,
       content: content || null,
       embeds,
+      buttons: buttons.length > 0 ? buttons : undefined,
     });
   };
 
@@ -610,6 +678,127 @@ export function EmbedEditor({
                   </button>
                 ))}
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Link Buttons */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <div>
+                <CardTitle className="text-lg">Link Buttons</CardTitle>
+                <CardDescription>
+                  {buttons.length}/{EMBED_LIMITS.BUTTONS_MAX} buttons (links
+                  only)
+                </CardDescription>
+              </div>
+              <Button
+                disabled={buttons.length >= EMBED_LIMITS.BUTTONS_MAX}
+                onClick={addButton}
+                size="sm"
+              >
+                <Plus className="mr-1 h-4 w-4" />
+                Add Button
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {buttons.length === 0 ? (
+                <p className="text-center text-muted-foreground text-sm">
+                  No buttons added. Click "Add Button" to create a link button.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {buttons.map((button, index) => (
+                    <div
+                      className="flex items-start gap-3 rounded-lg border p-3"
+                      key={button.id}
+                    >
+                      <div className="flex-1 space-y-3">
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <div className="space-y-1">
+                            <Label className="text-xs">Label</Label>
+                            <input
+                              className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                              maxLength={EMBED_LIMITS.BUTTON_LABEL_MAX}
+                              onChange={(e) =>
+                                updateButton(index, { label: e.target.value })
+                              }
+                              placeholder="Button label"
+                              value={button.label}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Style</Label>
+                            <Select
+                              onValueChange={(v) =>
+                                updateButton(index, {
+                                  style: v as ButtonStyle,
+                                })
+                              }
+                              value={button.style}
+                            >
+                              <SelectTrigger className="h-9">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {BUTTON_STYLES.map((style) => (
+                                  <SelectItem
+                                    key={style.value}
+                                    value={style.value}
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <div
+                                        className="h-3 w-3 rounded"
+                                        style={{ backgroundColor: style.color }}
+                                      />
+                                      {style.label}
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">URL</Label>
+                          <input
+                            className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            onChange={(e) =>
+                              updateButton(index, { url: e.target.value })
+                            }
+                            placeholder="https://example.com"
+                            type="url"
+                            value={button.url ?? ""}
+                          />
+                          <p className="text-muted-foreground text-xs">
+                            The URL to open when the button is clicked
+                          </p>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Emoji (optional)</Label>
+                          <input
+                            className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            onChange={(e) =>
+                              updateButton(index, {
+                                emoji: e.target.value || undefined,
+                              })
+                            }
+                            placeholder="🔗 or custom emoji ID"
+                            value={button.emoji ?? ""}
+                          />
+                        </div>
+                      </div>
+                      <Button
+                        className="shrink-0"
+                        onClick={() => removeButton(index)}
+                        size="icon"
+                        variant="ghost"
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -1134,7 +1323,11 @@ export function EmbedEditor({
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <MessagePreview content={content} embeds={embeds} />
+              <MessagePreview
+                buttons={buttons}
+                content={content}
+                embeds={embeds}
+              />
             </CardContent>
           </Card>
         </div>

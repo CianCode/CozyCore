@@ -1,0 +1,1 @@
+ALTER TABLE "saved_embed_messages" ADD COLUMN "buttons" jsonb DEFAULT '[]'::jsonb;

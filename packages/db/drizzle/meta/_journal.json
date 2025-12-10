@@ -57,6 +57,13 @@
       "when": 1765326415532,
       "tag": "0007_perpetual_blazing_skull",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1765383299482,
+      "tag": "0008_same_network",
+      "breakpoints": true
     }
   ]
 }

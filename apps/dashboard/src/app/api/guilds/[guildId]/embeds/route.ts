@@ -1,5 +1,5 @@
 import { accounts, db, guilds, savedEmbedMessages } from "@cozycore/db";
-import type { EmbedData, SavedEmbedMessage } from "@cozycore/types";
+import type { EmbedButton, EmbedData, SavedEmbedMessage } from "@cozycore/types";
 import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
@@ -76,6 +76,7 @@ export async function GET(_request: Request, { params }: { params: Params }) {
       discordMessageId: e.discordMessageId,
       content: e.content,
       embeds: (e.embeds as EmbedData[]) ?? [],
+      buttons: (e.buttons as EmbedButton[]) ?? [],
       createdAt: e.createdAt,
       updatedAt: e.updatedAt,
     }));
@@ -145,7 +146,7 @@ export async function POST(request: Request, { params }: { params: Params }) {
     }
 
     const body = await request.json();
-    const { name, channelId, content, embeds } = body;
+    const { name, channelId, content, embeds, buttons } = body;
 
     if (!name || typeof name !== "string") {
       return NextResponse.json(
@@ -166,6 +167,7 @@ export async function POST(request: Request, { params }: { params: Params }) {
         channelId: channelId ?? null,
         content: content ?? null,
         embeds: embeds ?? [],
+        buttons: buttons ?? [],
         createdAt: now,
         updatedAt: now,
       })
@@ -179,6 +181,7 @@ export async function POST(request: Request, { params }: { params: Params }) {
       discordMessageId: newEmbed.discordMessageId,
       content: newEmbed.content,
       embeds: (newEmbed.embeds as EmbedData[]) ?? [],
+      buttons: (newEmbed.buttons as EmbedButton[]) ?? [],
       createdAt: newEmbed.createdAt,
       updatedAt: newEmbed.updatedAt,
     };

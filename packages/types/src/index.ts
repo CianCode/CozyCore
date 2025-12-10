@@ -267,6 +267,18 @@ export type EmbedField = {
   inline?: boolean;
 };
 
+// Discord button styles
+export type ButtonStyle = "primary" | "secondary" | "success" | "danger" | "link";
+
+export type EmbedButton = {
+  id: string; // For React key
+  label: string;
+  style: ButtonStyle;
+  url?: string; // Only for link buttons
+  emoji?: string; // Optional emoji
+  disabled?: boolean;
+};
+
 export type EmbedData = {
   id: string; // For React key and reordering
   author?: EmbedAuthor;
@@ -289,6 +301,7 @@ export type SavedEmbedMessage = {
   discordMessageId: string | null;
   content: string | null;
   embeds: EmbedData[];
+  buttons?: EmbedButton[];
   createdAt: Date;
   updatedAt: Date;
 };
@@ -298,6 +311,7 @@ export type SavedEmbedMessageInput = {
   channelId?: string | null;
   content?: string | null;
   embeds: EmbedData[];
+  buttons?: EmbedButton[];
 };
 
 export type EmbedSendResult = {
@@ -316,4 +330,6 @@ export const EMBED_LIMITS = {
   FIELDS_MAX: 25,
   EMBEDS_MAX: 10,
   TOTAL_CHARS_MAX: 6000, // Total character limit per embed
+  BUTTONS_MAX: 5, // Max buttons per row, max 5 rows = 25 total
+  BUTTON_LABEL_MAX: 80,
 } as const;

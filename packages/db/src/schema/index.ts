@@ -355,6 +355,16 @@ export type EmbedData = {
   timestamp?: boolean;
 };
 
+// Button types for saved embed messages
+export type EmbedButtonDb = {
+  id: string;
+  label: string;
+  style: "primary" | "secondary" | "success" | "danger" | "link";
+  url?: string;
+  emoji?: string;
+  disabled?: boolean;
+};
+
 // Saved Embed Messages table
 export const savedEmbedMessages = pgTable("saved_embed_messages", {
   id: text("id").primaryKey(),
@@ -366,6 +376,7 @@ export const savedEmbedMessages = pgTable("saved_embed_messages", {
   discordMessageId: text("discord_message_id"), // Message ID if sent to Discord
   content: text("content"), // Regular message content above embeds
   embeds: jsonb("embeds").$type<EmbedData[]>().notNull().default([]),
+  buttons: jsonb("buttons").$type<EmbedButtonDb[]>().default([]),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
