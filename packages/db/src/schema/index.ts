@@ -285,6 +285,9 @@ export const levelConfig = pgTable("level_config", {
     .$type<string[]>()
     .default([]),
   lastMonthlyTopHelperRun: timestamp("last_monthly_top_helper_run"),
+  forceMonthlyTopHelperRun: boolean("force_monthly_top_helper_run")
+    .notNull()
+    .default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

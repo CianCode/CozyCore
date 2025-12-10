@@ -37,6 +37,15 @@ async function checkAllGuilds(client: Client<true>): Promise<void> {
   const currentHour = now.getUTCHours();
 
   for (const config of configs) {
+    // Check if force run is requested from dashboard
+    if (config.forceMonthlyTopHelperRun) {
+      console.log(
+        `[MonthlyHelper] Force run requested for guild ${config.guildId}`
+      );
+      await announceTopHelpers(client, config);
+      continue;
+    }
+
     // Check if it's time to run (correct day and hour)
     if (config.monthlyTopHelperDay !== currentDay) {
       continue;
@@ -97,10 +106,13 @@ async function announceTopHelpers(
 
   if (topHelpers.length === 0) {
     console.log(`[MonthlyHelper] No helpers found for ${guild.name}`);
-    // Still update lastRun so we don't keep checking
+    // Still update lastRun and reset force flag so we don't keep checking
     await db
       .update(levelConfig)
-      .set({ lastMonthlyTopHelperRun: new Date() })
+      .set({
+        lastMonthlyTopHelperRun: new Date(),
+        forceMonthlyTopHelperRun: false,
+      })
       .where(eq(levelConfig.guildId, guildId));
     return;
   }
@@ -177,10 +189,13 @@ async function announceTopHelpers(
     .set({ monthlyHelperCount: 0, lastHelperCountReset: new Date() })
     .where(eq(memberXp.guildId, guildId));
 
-  // Update last run timestamp
+  // Update last run timestamp and reset force flag
   await db
     .update(levelConfig)
-    .set({ lastMonthlyTopHelperRun: new Date() })
+    .set({
+      lastMonthlyTopHelperRun: new Date(),
+      forceMonthlyTopHelperRun: false,
+    })
     .where(eq(levelConfig.guildId, guildId));
 
   console.log(`[MonthlyHelper] Completed announcement for ${guild.name}`);

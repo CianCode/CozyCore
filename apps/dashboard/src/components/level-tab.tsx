@@ -332,8 +332,8 @@ export function LevelTab({ guildId }: LevelTabProps) {
       });
 
       if (response.ok) {
-        // Clear local state - only level roles, keep notification channels
-        setLevelRoles([]);
+        // Keep all local state - settings and level roles config are preserved
+        // Only the XP data in the database is cleared
         setSaveStatus("saved");
         setTimeout(() => setSaveStatus("idle"), 2000);
       } else {
@@ -642,7 +642,7 @@ export function LevelTab({ guildId }: LevelTabProps) {
               <div>
                 <DialogTitle>Reset Level System</DialogTitle>
                 <DialogDescription>
-                  This will permanently delete all data
+                  This will reset all user XP data
                 </DialogDescription>
               </div>
             </div>
@@ -651,9 +651,12 @@ export function LevelTab({ guildId }: LevelTabProps) {
             <p className="text-muted-foreground text-sm">This action will:</p>
             <ul className="list-disc space-y-1 pl-5 text-muted-foreground text-sm">
               <li>Delete all member XP records</li>
-              <li>Remove all level roles</li>
-              <li>Clear all notification channel settings</li>
+              <li>Remove level roles from all users in Discord</li>
             </ul>
+            <p className="text-muted-foreground text-sm">
+              Your level role configuration and notification settings will be
+              preserved.
+            </p>
             <p className="font-medium text-destructive text-sm">
               This action cannot be undone.
             </p>

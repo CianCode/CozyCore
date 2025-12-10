@@ -500,7 +500,7 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
   }
 }
 
-// DELETE - Reset level system (clear all XP and notification channels)
+// DELETE - Reset level system (clear all XP data and remove roles from users)
 export async function DELETE(
   _request: Request,
   { params }: { params: Params }
@@ -542,15 +542,93 @@ export async function DELETE(
       );
     }
 
-    // Delete all member XP records for this guild
+    // Get the level config for log channel
+    const [config] = await db
+      .select()
+      .from(levelConfig)
+      .where(eq(levelConfig.guildId, guildId))
+      .limit(1);
+
+    // Get all members with level roles to remove
+    const membersWithRoles = await db
+      .select()
+      .from(memberXp)
+      .where(eq(memberXp.guildId, guildId));
+
+    // Get level roles config for this guild
+    const levelRolesList = await db
+      .select()
+      .from(levelRoles)
+      .where(eq(levelRoles.guildId, guildId));
+
+    const levelRoleIds = new Set(levelRolesList.map((r) => r.roleId));
+
+    // Remove level roles from Discord users using bot token
+    const botToken = process.env.DISCORD_BOT_TOKEN;
+    let rolesRemoved = 0;
+    let membersProcessed = 0;
+
+    if (botToken) {
+      for (const member of membersWithRoles) {
+        if (member.currentRoleId && levelRoleIds.has(member.currentRoleId)) {
+          try {
+            const response = await fetch(
+              `https://discord.com/api/v10/guilds/${guildId}/members/${member.userId}/roles/${member.currentRoleId}`,
+              {
+                method: "DELETE",
+                headers: {
+                  Authorization: `Bot ${botToken}`,
+                },
+              }
+            );
+            if (response.ok || response.status === 204) {
+              rolesRemoved++;
+            }
+          } catch (err) {
+            console.error(
+              `Failed to remove role from user ${member.userId}:`,
+              err
+            );
+          }
+          membersProcessed++;
+        }
+      }
+    }
+
+    // Delete all member XP records for this guild (keeps level roles config)
     await db.delete(memberXp).where(eq(memberXp.guildId, guildId));
 
-    // Delete all level roles for this guild
-    await db.delete(levelRoles).where(eq(levelRoles.guildId, guildId));
+    // Send log message if log channel is configured
+    if (botToken && config?.logChannelId) {
+      try {
+        const logEmbed = {
+          title: "🔄 Level System Reset",
+          description: `The level system has been reset by a dashboard administrator.\n\n**Members affected:** ${membersWithRoles.length}\n**Roles removed:** ${rolesRemoved}\n\nAll XP data has been cleared. Level role configurations have been preserved.`,
+          color: 0xff_a5_00, // Orange
+          timestamp: new Date().toISOString(),
+        };
+
+        await fetch(
+          `https://discord.com/api/v10/channels/${config.logChannelId}/messages`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bot ${botToken}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ embeds: [logEmbed] }),
+          }
+        );
+      } catch (err) {
+        console.error("Failed to send reset log:", err);
+      }
+    }
 
     return NextResponse.json({
       success: true,
       message: "Level system reset successfully",
+      membersCleared: membersWithRoles.length,
+      rolesRemoved,
     });
   } catch (error) {
     console.error("Error resetting level system:", error);

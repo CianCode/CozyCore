@@ -81,16 +81,11 @@ export async function POST(_request: Request, { params }: { params: Params }) {
       );
     }
 
-    // Set forceRun flag to trigger the announcement
-    // We'll use a special date value (far in the past) to indicate forced run
+    // Set forceRun flag to trigger the announcement immediately
     await db
       .update(levelConfig)
       .set({
-        // Set to a date far in the past so the scheduler sees it needs to run
-        lastMonthlyTopHelperRun: new Date("2000-01-01"),
-        // Also set the day/hour to NOW so it triggers immediately
-        monthlyTopHelperDay: new Date().getUTCDate(),
-        monthlyTopHelperHour: new Date().getUTCHours(),
+        forceMonthlyTopHelperRun: true,
         updatedAt: new Date(),
       })
       .where(eq(levelConfig.guildId, guildId));
