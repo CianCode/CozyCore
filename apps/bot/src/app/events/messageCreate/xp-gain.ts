@@ -74,10 +74,20 @@ export default async function handleXpGain(message: Message): Promise<void> {
       return;
 
     // Calculate XP gain
-    const xpGain = Math.floor(
+    let xpGain = Math.floor(
       Math.random() * (config.maxXpPerMessage - config.minXpPerMessage + 1) +
         config.minXpPerMessage
     );
+
+    // Apply booster XP multiplier
+    if (config.boosterEnabled && config.boosterXpMultiplier > 1) {
+      const guildMember = await message.guild.members
+        .fetch(userId)
+        .catch(() => null);
+      if (guildMember?.premiumSince) {
+        xpGain = Math.floor(xpGain * config.boosterXpMultiplier);
+      }
+    }
 
     // Award XP (handles role progression + notifications)
     const { oldXp, newXp } = await awardXp(

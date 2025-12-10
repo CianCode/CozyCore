@@ -1,4 +1,11 @@
-import { accounts, db, guilds, levelConfig, levelRoles } from "@cozycore/db";
+import {
+  accounts,
+  db,
+  guilds,
+  levelConfig,
+  levelRoles,
+  memberXp,
+} from "@cozycore/db";
 import type { LevelConfig, LevelRole } from "@cozycore/types";
 import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
@@ -488,6 +495,67 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
     console.error("Error updating level config:", error);
     return NextResponse.json(
       { success: false, error: "Failed to update level config" },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE - Reset level system (clear all XP and notification channels)
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Params }
+) {
+  try {
+    const { guildId } = await params;
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const [account] = await db
+      .select()
+      .from(accounts)
+      .where(eq(accounts.userId, session.user.id))
+      .limit(1);
+
+    if (!account?.accessToken) {
+      return NextResponse.json(
+        { success: false, error: "Discord account not linked" },
+        { status: 400 }
+      );
+    }
+
+    // Verify user has access to this guild
+    const userGuilds = await fetchUserGuilds(account.accessToken);
+    const targetGuild = userGuilds.find((g) => g.id === guildId);
+
+    if (!(targetGuild && hasManageGuildPermission(targetGuild.permissions))) {
+      return NextResponse.json(
+        { success: false, error: "You don't have access to this server" },
+        { status: 403 }
+      );
+    }
+
+    // Delete all member XP records for this guild
+    await db.delete(memberXp).where(eq(memberXp.guildId, guildId));
+
+    // Delete all level roles for this guild
+    await db.delete(levelRoles).where(eq(levelRoles.guildId, guildId));
+
+    return NextResponse.json({
+      success: true,
+      message: "Level system reset successfully",
+    });
+  } catch (error) {
+    console.error("Error resetting level system:", error);
+    return NextResponse.json(
+      { success: false, error: "Failed to reset level system" },
       { status: 500 }
     );
   }

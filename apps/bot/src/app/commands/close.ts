@@ -11,8 +11,6 @@ import {
   awardXp,
   getLevelConfig,
   incrementMonthlyHelperCount,
-  sendFastResolutionNotification,
-  sendHelperRecognition,
 } from "@/utils/level";
 
 export const command: CommandData = {
@@ -187,46 +185,40 @@ export const chatInput: ChatInputCommand = async ({ interaction }) => {
         // Increment monthly helper count for leaderboard
         await incrementMonthlyHelperCount(guildId, helperId);
 
-        // Send helper recognition notification in the thread
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await sendHelperRecognition(
-          interaction.guild! as any,
-          config,
-          helperId,
-          thread.ownerId ?? i.user.id,
-          thread.name,
-          totalHelperXp,
-          thread as any
-        );
+        // Build the appropriate embed based on resolution type
+        let resultEmbed: EmbedBuilder;
 
-        // Send fast resolution notification if applicable in the thread
         if (isFastResolution && hoursElapsed !== null) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          await sendFastResolutionNotification(
-            interaction.guild! as any,
-            config,
-            helperId,
-            thread.ownerId ?? i.user.id,
-            thread.name,
-            hoursElapsed,
-            config.fastResolutionBonusXp,
-            thread as any
-          );
+          // Fast Resolution embed - more celebratory
+          resultEmbed = new EmbedBuilder()
+            .setColor(0xff_d7_00) // Gold color for fast resolution
+            .setTitle("⚡ Fast Resolution!")
+            .setDescription(
+              `This thread was resolved in **${hoursElapsed.toFixed(1)} hours**!\n\n` +
+                `<@${helperId}> earned **${totalHelperXp} XP** ` +
+                `(${config.helperBonusXp} helper + ${config.fastResolutionBonusXp} speed bonus)`
+            )
+            .setFooter({
+              text: `Thread owner received ${config.xpOnThreadClose} XP`,
+            })
+            .setTimestamp();
+        } else {
+          // Regular helper recognition embed
+          resultEmbed = new EmbedBuilder()
+            .setColor(getRandomPastelDecimal())
+            .setTitle("✅ Thread Resolved")
+            .setDescription(
+              `Thanks for helping out, <@${helperId}>!\n\n` +
+                `**+${totalHelperXp} XP** awarded for being helpful.`
+            )
+            .setFooter({
+              text: `Thread owner received ${config.xpOnThreadClose} XP`,
+            })
+            .setTimestamp();
         }
 
-        const bonusText = isFastResolution
-          ? ` (includes +${config.fastResolutionBonusXp} fast resolution bonus!)`
-          : "";
-
         await i.update({
-          embeds: [
-            new EmbedBuilder()
-              .setColor(getRandomPastelDecimal())
-              .setTitle("✨ Helper Recognized!")
-              .setDescription(
-                `<@${helperId}> received **${totalHelperXp} bonus XP**!${bonusText}`
-              ),
-          ],
+          embeds: [resultEmbed],
           components: [],
         });
       }

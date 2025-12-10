@@ -160,6 +160,9 @@ export function LevelTab({ guildId }: LevelTabProps) {
     open: boolean;
     roleId: string | null;
   }>({ open: false, roleId: null });
+  const [resetDialog, setResetDialog] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [runningMonthlyHelper, setRunningMonthlyHelper] = useState(false);
 
   // Fetch level data
   useEffect(() => {
@@ -320,6 +323,50 @@ export function LevelTab({ guildId }: LevelTabProps) {
     setDeleteDialog({ open: false, roleId: null });
   };
 
+  // Reset entire level system
+  const resetLevelSystem = async () => {
+    setResetting(true);
+    try {
+      const response = await fetch(`/api/guilds/${guildId}/level`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        // Clear local state - only level roles, keep notification channels
+        setLevelRoles([]);
+        setSaveStatus("saved");
+        setTimeout(() => setSaveStatus("idle"), 2000);
+      } else {
+        setSaveStatus("error");
+      }
+    } catch {
+      setSaveStatus("error");
+    }
+    setResetting(false);
+    setResetDialog(false);
+  };
+
+  // Trigger monthly helper announcement
+  const triggerMonthlyHelper = async () => {
+    setRunningMonthlyHelper(true);
+    try {
+      const response = await fetch(
+        `/api/guilds/${guildId}/level/monthly-helper`,
+        { method: "POST" }
+      );
+
+      if (response.ok) {
+        setSaveStatus("saved");
+        setTimeout(() => setSaveStatus("idle"), 2000);
+      } else {
+        setSaveStatus("error");
+      }
+    } catch {
+      setSaveStatus("error");
+    }
+    setRunningMonthlyHelper(false);
+  };
+
   // Toggle channel whitelist
   const toggleChannelWhitelist = (channelId: string) => {
     if (!config) {
@@ -417,6 +464,15 @@ export function LevelTab({ guildId }: LevelTabProps) {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <Button
+              className="gap-2"
+              onClick={() => setResetDialog(true)}
+              size="sm"
+              variant="destructive"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Reset System
+            </Button>
             <span className="text-muted-foreground text-sm">
               {config.enabled ? "Enabled" : "Disabled"}
             </span>
@@ -430,7 +486,7 @@ export function LevelTab({ guildId }: LevelTabProps) {
 
       {/* Main Configuration Tabs */}
       <Tabs className="space-y-6" defaultValue="message-xp">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger className="gap-2" value="message-xp">
             <MessageCircle className="h-4 w-4" />
             Message XP
@@ -446,6 +502,10 @@ export function LevelTab({ guildId }: LevelTabProps) {
           <TabsTrigger className="gap-2" value="notifications">
             <Bell className="h-4 w-4" />
             Notifications
+          </TabsTrigger>
+          <TabsTrigger className="gap-2" value="settings">
+            <Zap className="h-4 w-4" />
+            Settings
           </TabsTrigger>
           <TabsTrigger className="gap-2" value="leaderboard">
             <Trophy className="h-4 w-4" />
@@ -495,6 +555,18 @@ export function LevelTab({ guildId }: LevelTabProps) {
             config={config}
             onSave={saveConfig}
             roles={roles}
+          />
+        </TabsContent>
+
+        {/* Settings Tab */}
+        <TabsContent className="space-y-6" value="settings">
+          <BonusSettings
+            channels={textChannels}
+            config={config}
+            onSave={saveConfig}
+            onTriggerMonthlyHelper={triggerMonthlyHelper}
+            roles={roles}
+            runningMonthlyHelper={runningMonthlyHelper}
           />
         </TabsContent>
 
@@ -554,6 +626,59 @@ export function LevelTab({ guildId }: LevelTabProps) {
               variant="destructive"
             >
               Delete Role
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reset Level System Dialog */}
+      <Dialog onOpenChange={setResetDialog} open={resetDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="rounded-lg bg-destructive/10 p-2">
+                <RefreshCw className="h-5 w-5 text-destructive" />
+              </div>
+              <div>
+                <DialogTitle>Reset Level System</DialogTitle>
+                <DialogDescription>
+                  This will permanently delete all data
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          <div className="space-y-3 py-4">
+            <p className="text-muted-foreground text-sm">This action will:</p>
+            <ul className="list-disc space-y-1 pl-5 text-muted-foreground text-sm">
+              <li>Delete all member XP records</li>
+              <li>Remove all level roles</li>
+              <li>Clear all notification channel settings</li>
+            </ul>
+            <p className="font-medium text-destructive text-sm">
+              This action cannot be undone.
+            </p>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              disabled={resetting}
+              onClick={() => setResetDialog(false)}
+              variant="outline"
+            >
+              Cancel
+            </Button>
+            <Button
+              disabled={resetting}
+              onClick={resetLevelSystem}
+              variant="destructive"
+            >
+              {resetting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Resetting...
+                </>
+              ) : (
+                "Reset Everything"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1512,8 +1637,6 @@ function NotificationSettings({
               <TabsTrigger value="promotion">🎉 Promotion</TabsTrigger>
               <TabsTrigger value="demotion">⚠️ Demotion</TabsTrigger>
               <TabsTrigger value="loss">📉 Role Loss</TabsTrigger>
-              <TabsTrigger value="helper">🌟 Helper</TabsTrigger>
-              <TabsTrigger value="fast">⚡ Fast Fix</TabsTrigger>
             </TabsList>
 
             <TabsContent className="space-y-4" value="promotion">
@@ -1568,56 +1691,31 @@ function NotificationSettings({
                 variables={["user", "role"]}
               />
             </TabsContent>
-
-            <TabsContent className="space-y-4" value="helper">
-              <p className="mb-4 text-muted-foreground text-sm">
-                This message is sent directly in the thread when it&apos;s
-                closed with a marked helper.
-              </p>
-              <EmbedEditor
-                description={config.helperRecognitionEmbedDescription}
-                descriptions={config.helperRecognitionEmbedDescriptions}
-                onDescriptionChange={(value) =>
-                  onSave({ helperRecognitionEmbedDescription: value })
-                }
-                onDescriptionsChange={(value) =>
-                  onSave({ helperRecognitionEmbedDescriptions: value })
-                }
-                onTitleChange={(value) =>
-                  onSave({ helperRecognitionEmbedTitle: value })
-                }
-                roles={roles}
-                title={config.helperRecognitionEmbedTitle}
-                variables={["helper", "asker", "thread"]}
-              />
-            </TabsContent>
-
-            <TabsContent className="space-y-4" value="fast">
-              <p className="mb-4 text-muted-foreground text-sm">
-                This message is sent directly in the thread when it&apos;s
-                resolved within the fast resolution time limit.
-              </p>
-              <EmbedEditor
-                description={config.fastResolutionEmbedDescription}
-                descriptions={config.fastResolutionEmbedDescriptions}
-                onDescriptionChange={(value) =>
-                  onSave({ fastResolutionEmbedDescription: value })
-                }
-                onDescriptionsChange={(value) =>
-                  onSave({ fastResolutionEmbedDescriptions: value })
-                }
-                onTitleChange={(value) =>
-                  onSave({ fastResolutionEmbedTitle: value })
-                }
-                roles={roles}
-                title={config.fastResolutionEmbedTitle}
-                variables={["helper", "asker", "hours", "xp", "thread"]}
-              />
-            </TabsContent>
           </Tabs>
         </CardContent>
       </Card>
+    </div>
+  );
+}
 
+// Bonus Settings Component (Booster Perks + Monthly Top Helper)
+function BonusSettings({
+  config,
+  channels,
+  roles,
+  onSave,
+  runningMonthlyHelper,
+  onTriggerMonthlyHelper,
+}: {
+  config: LevelConfig;
+  channels: DiscordChannel[];
+  roles: DiscordRole[];
+  onSave: (updates: Partial<LevelConfig>) => void;
+  runningMonthlyHelper: boolean;
+  onTriggerMonthlyHelper: () => void;
+}) {
+  return (
+    <div className="space-y-6">
       {/* Booster Settings */}
       <Card>
         <CardHeader>
@@ -1758,12 +1856,36 @@ function NotificationSettings({
                 </CardDescription>
               </div>
             </div>
-            <Switch
-              checked={config.monthlyTopHelperEnabled}
-              onCheckedChange={(checked) =>
-                onSave({ monthlyTopHelperEnabled: checked })
-              }
-            />
+            <div className="flex items-center gap-3">
+              {config.monthlyTopHelperEnabled && (
+                <Button
+                  disabled={
+                    runningMonthlyHelper || !config.monthlyTopHelperChannelId
+                  }
+                  onClick={onTriggerMonthlyHelper}
+                  size="sm"
+                  variant="outline"
+                >
+                  {runningMonthlyHelper ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Triggering...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="mr-2 h-4 w-4" />
+                      Run Now
+                    </>
+                  )}
+                </Button>
+              )}
+              <Switch
+                checked={config.monthlyTopHelperEnabled}
+                onCheckedChange={(checked) =>
+                  onSave({ monthlyTopHelperEnabled: checked })
+                }
+              />
+            </div>
           </div>
         </CardHeader>
         {config.monthlyTopHelperEnabled && (
